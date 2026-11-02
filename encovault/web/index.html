@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10172a">
+  <title>EncoVault · File Security Toolkit</title>
+  <link rel="stylesheet" href="/styles.css?v=22">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#" id="home-link"><span class="brand-mark">E</span><span><strong>EncoVault</strong><small>FILE SECURITY TOOLKIT</small></span></a>
+      <div class="side-label">YOUR FILES</div>
+      <nav class="primary-nav" aria-label="File tools">
+        <button class="nav-button active" data-mode="lock"><span class="nav-icon">🔐</span>File security</button>
+        <button class="nav-button" data-mode="compress"><span class="nav-icon">⌁</span>Compression lab</button>
+      </nav>
+      <div class="side-label lab-label">SANDBOXES</div>
+      <nav class="lab-nav" aria-label="Try the tools">
+        <button class="nav-button" data-lab="classical"><span class="nav-icon">⌘</span>Classical ciphers</button>
+        <button class="nav-button" data-lab="modern"><span class="nav-icon">◈</span>Modern cryptography</button>
+        <button class="nav-button" data-lab="compression"><span class="nav-icon">↔</span>Compression</button>
+        <button class="nav-button" data-lab="network"><span class="nav-icon">⌁</span>Network security</button>
+      </nav>
+      <div class="side-label learn-label">REFERENCE</div>
+      <nav class="learn-nav" aria-label="Security reference">
+        <button class="nav-button" data-learn><span class="nav-icon">i</span>Security reference</button>
+      </nav>
+      <div class="sidebar-bottom"><span class="live-dot"></span><span>Files stay on this device</span></div>
+    </aside>
+    <main class="main-area">
+      <header class="topbar"><div class="breadcrumb"><span>EncoVault</span><span class="slash">/</span><strong id="crumb">File security</strong></div><span class="local-pill"><span class="live-dot"></span> LOCAL MODE</span></header>
+      <section class="content" id="content"></section>
+    </main>
+  </div>
+  <script src="/app.js?v=22"></script>
+</body>
+</html>

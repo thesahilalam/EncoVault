@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=58"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "encovault"
+version = "0.1.0"
+description = "A local file locking, compression and security lab toolkit."
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "License not yet selected"}
+authors = [{name = "EncoVault contributors"}]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Topic :: Security",
+]
+
+[project.scripts]
+encovault = "encovault.cli.main:main"
+
+[tool.setuptools.packages.find]
+include = ["encovault*"]
+
+[tool.setuptools.package-data]
+encovault = ["web/*.html", "web/*.css", "web/*.js"]
