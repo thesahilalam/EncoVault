@@ -42,7 +42,7 @@ function renderLearn(selected=0,openBranch=null){
 
 function renderLab(category){
   const labConfig = {
-    classical: {label: "Historic Crypto & Cryptanalysis", crumb: "Classical Ciphers", summary: "Explore classical substitution, matrix encryption, and automated cryptanalysis.", tools: ["Caesar Cipher", "Vigenère Cipher", "Playfair Cipher", "Cryptanalysis & Frequency"]},
+    classical: {label: "Historic Crypto & Cryptanalysis", crumb: "Classical Ciphers", summary: "Explore classical substitution, matrix encryption, and automated cryptanalysis.", tools: ["Caesar Cipher", "Vigenère Cipher", "Playfair Cipher", "Hill Cipher", "Cryptanalysis & Frequency"]},
     modern: {label: "Modern Cryptography", crumb: "Modern Crypto", summary: "Authenticated encryption, hashing, and public key techniques.", tools: ["AES-GCM demo", "RSA-OAEP demo", "SHA-256 hash"]},
     compression: {label: "Compression Lab", crumb: "Compression", summary: "Interactive demos on how data redundancy is removed.", tools: ["Run-length encoding", "Huffman coding", "Entropy explorer"]}
   };
@@ -58,7 +58,7 @@ function renderLab(category){
 
 function renderLabTool(category, name){
   const tools = {
-    classical: ["Caesar Cipher", "Vigenère Cipher", "Playfair Cipher", "Cryptanalysis & Frequency"],
+    classical: ["Caesar Cipher", "Vigenère Cipher", "Playfair Cipher", "Hill Cipher", "Cryptanalysis & Frequency"],
     modern: ["AES-GCM demo", "RSA-OAEP demo", "SHA-256 hash"],
     compression: ["Run-length encoding", "Huffman coding", "Entropy explorer"]
   };
@@ -99,54 +99,94 @@ function renderLabTool(category, name){
           document.getElementById("sim-output").textContent = result;
       };
   } else if(name==="Playfair Cipher"){
-      target.innerHTML=`<div class="work-card"><h2>Playfair Cipher</h2><p>Construct a 5x5 key matrix (I/J combined) and encrypt digraph pairs.</p><textarea class="lab-input" id="sim-input">PLAYFAIR EXAMPLE</textarea><div class="lab-row"><div><label class="field-label">KEYWORD</label><input class="field" id="sim-key" value="MONARCHY"></div></div><button class="browse-button" id="sim-run">Generate Grid & Process</button><div class="lab-output" id="sim-output">Result & Grid matrix will appear here.</div></div>`;
+      target.innerHTML=`<div class="work-card"><h2>Playfair Cipher</h2><p>Encrypts digraph pairs using a 5×5 key matrix. J is merged into I.</p><textarea class="lab-input" id="sim-input">HELLO WORLD</textarea><div class="lab-row"><div><label class="field-label">KEYWORD</label><input class="field" id="sim-key" value="MONARCHY"></div><div><label class="field-label">ACTION</label><select class="select" id="sim-mode"><option value="1">Encrypt</option><option value="-1">Decrypt</option></select></div></div><button class="browse-button" id="sim-run">Execute</button><div class="lab-output" id="sim-output">Result & Grid will appear here.</div></div>`;
       document.getElementById("sim-run").onclick = () => {
           const rawKey = document.getElementById("sim-key").value.toUpperCase().replace(/[^A-Z]/g, '').replace(/J/g, 'I');
-          const gridChars = Array.from(new Set((rawKey + "ABCDEFGHIKLMNOPQRSTUVWXYZ").split("")));
-          let gridHTML = "<div style='display:grid;grid-template-columns:repeat(5,35px);gap:6px;margin:10px 0;font-weight:bold;'>";
-          gridChars.forEach(ch => gridHTML += `<div style='background:#f0f2f5;padding:8px;text-align:center;border-radius:4px;'>${ch}</div>`);
+          if (!rawKey) { document.getElementById("sim-output").textContent = "Enter a keyword first."; return; }
+          const chars = Array.from(new Set((rawKey + "ABCDEFGHIKLMNOPQRSTUVWXYZ").split("")));
+          const pos = {};
+          chars.forEach((ch, i) => pos[ch] = [Math.floor(i / 5), i % 5]);
+          let gridHTML = "<div style='display:grid;grid-template-columns:repeat(5,34px);gap:6px;margin:10px 0;font-weight:bold;'>";
+          chars.forEach((ch, i) => gridHTML += `<div style='background:${i < rawKey.length ? '#eef0ff' : '#f0f2f5'};padding:7px;text-align:center;border-radius:4px;color:${i < rawKey.length ? '#4f46e5' : '#333'};'>${ch}</div>`);
           gridHTML += "</div>";
-          
-          const text = document.getElementById("sim-input").value.toUpperCase().replace(/[^A-Z]/g, '').replace(/J/g, 'I');
-          document.getElementById("sim-output").innerHTML = `<b>5x5 Matrix Grid:</b>${gridHTML}<b>Cleaned Digraph Input:</b> ${text}`;
+          const mode = parseInt(document.getElementById("sim-mode").value);
+          const cleaned = document.getElementById("sim-input").value.toUpperCase().replace(/[^A-Z]/g, '').replace(/J/g, 'I');
+          const pairs = [];
+          for (let i = 0; i < cleaned.length; i += 2) {
+              let a = cleaned[i], b = cleaned[i + 1] || 'X';
+              if (a === b) { b = 'X'; i--; }
+              pairs.push([a, b]);
+          }
+          const output = pairs.map(([a, b]) => {
+              const [ra, ca] = pos[a], [rb, cb] = pos[b];
+              if (ra === rb) return mode === 1
+                  ? chars[ra * 5 + (ca + 1) % 5] + chars[rb * 5 + (cb + 1) % 5]
+                  : chars[ra * 5 + (ca + 24) % 5] + chars[rb * 5 + (cb + 24) % 5];
+              if (ca === cb) return mode === 1
+                  ? chars[((ra + 1) % 5) * 5 + ca] + chars[((rb + 1) % 5) * 5 + cb]
+                  : chars[((ra + 4) % 5) * 5 + ca] + chars[((rb + 4) % 5) * 5 + cb];
+              return chars[ra * 5 + cb] + chars[rb * 5 + ca];
+          }).join(' ');
+          document.getElementById("sim-output").innerHTML = `<b>Key Matrix:</b>${gridHTML}<b>Digraphs:</b> ${pairs.map(p => p.join('')).join(' · ')}<br><b>Result:</b> <span style="color:#0f9d6e;font-weight:bold;">${output}</span>`;
+      };
+  } else if(name==="Hill Cipher"){
+      target.innerHTML=`<div class="work-card"><h2>Hill Cipher (2×2)</h2><p>Linear-algebra block cipher: each letter pair becomes a vector multiplied by a key matrix modulo 26.</p><textarea class="lab-input" id="sim-input">ACT</textarea><div class="lab-row"><div><label class="field-label">KEY MATRIX (a b c d)</label><input class="field" id="sim-key" value="3 3 2 5"></div><div><label class="field-label">ACTION</label><select class="select" id="sim-mode"><option value="1">Encrypt</option><option value="-1">Decrypt</option></select></div></div><button class="browse-button" id="sim-run">Execute</button><div class="lab-output" id="sim-output">Result will appear here.</div></div>`;
+      document.getElementById("sim-run").onclick = () => {
+          const nums = document.getElementById("sim-key").value.match(/-?\d+/g);
+          const output = document.getElementById("sim-output");
+          if (!nums || nums.length !== 4) { output.textContent = "Enter 4 integers, e.g. 3 3 2 5"; return; }
+          const [a, b, c, d] = nums.map(Number);
+          const det = a * d - b * c;
+          const detMod = ((det % 26) + 26) % 26;
+          const inv = [1,3,5,7,9,11,15,17,19,21,23,25].find(x => (detMod * x) % 26 === 1);
+          if (inv === undefined) { output.innerHTML = `<b>det = ${det} ≡ ${detMod} (mod 26)</b> — not invertible. Pick a key whose determinant shares no factor with 26 (e.g. 3 3 2 5 → det 9).`; return; }
+          const matrix = parseInt(document.getElementById("sim-mode").value) === 1
+              ? [a, b, c, d]
+              : [d, -b, -c, a].map(x => ((inv * x) % 26 + 26) % 26);
+          const letters = document.getElementById("sim-input").value.toUpperCase().replace(/[^A-Z]/g, '');
+          if (!letters) { output.textContent = "Enter letters first."; return; }
+          const padded = letters.length % 2 ? letters + 'X' : letters;
+          let steps = [];
+          let result = '';
+          for (let i = 0; i < padded.length; i += 2) {
+              const x = padded.charCodeAt(i) - 65, y = padded.charCodeAt(i + 1) - 65;
+              const e1 = ((matrix[0] * x + matrix[1] * y) % 26 + 26) % 26, e2 = ((matrix[2] * x + matrix[3] * y) % 26 + 26) % 26;
+              steps.push(`[${x},${y}] → [${e1},${e2}] (${padded[i]}${padded[i+1]} → ${String.fromCharCode(e1+65)}${String.fromCharCode(e2+65)})`);
+              result += String.fromCharCode(e1 + 65) + String.fromCharCode(e2 + 65);
+            }
+          output.innerHTML = `<b>Effective key matrix:</b> [${matrix.join(' ')}] · det=${det}, inverse=${inv}<br><b>Step-by-step:</b><br>${steps.join('<br>')}<br><b>Result:</b> <span style="color:#0f9d6e;font-weight:bold;">${result}</span>`;
       };
   } else if(name==="Cryptanalysis & Frequency"){
-      target.innerHTML=`<div class="work-card"><h2>Cryptanalysis & Frequency Analysis</h2><p>Break simple ciphers automatically or analyze character distribution.</p><textarea class="lab-input" id="sim-input">DOWDFN DW GDZQ</textarea><button class="browse-button" id="sim-run">Analyze & Crack Caesar</button><div class="lab-output" id="sim-output">Analysis output...</div></div>`;
+      target.innerHTML=`<div class="work-card"><h2>Cryptanalysis & Frequency Analysis</h2><p>Break simple substitution with statistics: letter frequency, index of coincidence, and a chi-squared Caesar crack.</p><textarea class="lab-input" id="sim-input">DWWDFN DW GDZQ</textarea><button class="browse-button" id="sim-run">Analyze & Crack Caesar</button><div class="lab-output" id="sim-output">Analysis output...</div></div>`;
       document.getElementById("sim-run").onclick = () => {
           const text = document.getElementById("sim-input").value;
           const cleanText = text.toUpperCase().replace(/[^A-Z]/g, '');
-          if (!cleanText) {
-              document.getElementById("sim-output").textContent = "Provide cipher text for analysis.";
-              return;
-          }
+          if (cleanText.length < 2) { document.getElementById("sim-output").textContent = "Provide at least 2 cipher letters for analysis."; return; }
+          const engFreq={A:8.2,B:1.5,C:2.8,D:4.3,E:12.7,F:2.2,G:2.0,H:6.1,I:7.0,J:0.15,K:0.77,L:4.0,M:2.5,N:6.7,O:7.5,P:1.9,Q:0.095,R:6.0,S:6.3,T:9.1,U:2.8,V:0.98,W:2.4,X:0.15,Y:2.0,Z:0.074};
+          // Observed frequency
           const freq = {};
           [...cleanText].forEach(c => freq[c] = (freq[c] || 0) + 1);
           const sorted = Object.entries(freq).sort((a,b) => b[1] - a[1]);
-          
-          let bestShift = 0;
-          let bestScore = -Infinity;
-          const engFreq = {E:12.7, T:9.1, A:8.2, O:7.5, I:7.0, N:6.7, S:6.3, H:6.1, R:6.0, D:4.3, L:4.0, C:2.8, U:2.8};
-          
-          for(let shift=0; shift<26; shift++) {
-              let score = 0;
-              for (const c of cleanText) {
-                  const decryptedChar = String.fromCharCode(((c.charCodeAt(0) - 65 - shift + 26) % 26) + 65);
-                  score += (engFreq[decryptedChar] || 0);
-              }
-              if (score > bestScore) {
-                  bestScore = score;
-                  bestShift = shift;
-              }
+          // Index of coincidence: probability two random letters match (English ≈ 0.066, random ≈ 0.038)
+          const ic = Object.values(freq).reduce((sum,n) => sum + n*(n-1), 0) / (cleanText.length*(cleanText.length-1));
+          // Chi-squared: pick shift whose decrypted distribution best matches English
+          let bestShift = 0, bestChi = Infinity;
+          for (let shift=0; shift<26; shift++) {
+              const counts = {};
+              for (const c of cleanText) { const d = String.fromCharCode(((c.charCodeAt(0)-65-shift+26)%26)+65); counts[d]=(counts[d]||0)+1; }
+              let x = 0;
+              for (const [L,f] of Object.entries(engFreq)) { const o = counts[L]||0, e = cleanText.length*f/100; x += (o-e)*(o-e)/e; }
+              if (x < bestChi) { bestChi = x; bestShift = shift; }
           }
-          
           const crackedText = [...text].map(c => {
              if (!/[a-z]/i.test(c)) return c;
              const code = c.charCodeAt(0);
              const base = code < 97 ? 65 : 97;
              return String.fromCharCode(((code - base - bestShift + 2600) % 26) + base);
           }).join("");
-          
-          document.getElementById("sim-output").innerHTML = `<b>Top Letter Frequencies:</b> ${sorted.slice(0,5).map(([c,n])=>`${c}:${n}`).join(', ')}<br><br><b>Automated Caesar Crack (Best Guess Shift ${bestShift}):</b><br><span style="color:#0f9d6e;font-weight:bold;">${crackedText}</span>`;
+          const maxCount = sorted[0][1];
+          const bars = sorted.slice(0,8).map(([c,n]) => `<div style="display:flex;align-items:center;gap:8px;margin:3px 0;"><span style="width:16px;font-weight:bold;color:#4f46e5;">${c}</span><div style="background:#eef0ff;border-radius:4px;height:14px;width:${Math.max(4,(n/maxCount)*60)}%;"></div><span style="font-size:.75rem;color:#666;">${n} (${(n/cleanText.length*100).toFixed(1)}%)</span></div>`).join("");
+          document.getElementById("sim-output").innerHTML = `<b>Letter frequencies:</b>${bars}<b>Index of coincidence:</b> ${ic.toFixed(4)} · English ≈ 0.066, random ≈ 0.038 ${ic>0.055?'· <span style="color:#0f9d6e;font-weight:bold;">looks like a monoalphabetic substitution</span>':'· spread out — likely polyalphabetic or short sample'}<br><br><b>Chi-squared Caesar crack:</b> best shift <b>${bestShift}</b> (χ² = ${bestChi.toFixed(1)})<br><span style="color:#0f9d6e;font-weight:bold;">${crackedText}</span>`;
       };
   } else {
       target.innerHTML=`<div class="work-card"><h2>${name}</h2><p>Interactive tool active.</p></div>`;
