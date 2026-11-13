@@ -292,7 +292,26 @@ function concatBytes(...arrays){const result=new Uint8Array(arrays.reduce((sum,a
 
 navButtons.forEach(button=>button.addEventListener("click",()=>{if(button.hasAttribute("data-mode")){mode=button.getAttribute("data-mode");renderFileTool();}else if(button.hasAttribute("data-learn"))renderLearn();else renderLab(button.getAttribute("data-lab"));}));
 document.getElementById("home-link").addEventListener("click",event=>{event.preventDefault();mode="lock";renderFileTool();});
-renderFileTool();
-navButtons.forEach(button=>button.addEventListener("click",()=>{if(button.hasAttribute("data-mode")){mode=button.getAttribute("data-mode");renderFileTool();}else if(button.hasAttribute("data-learn"))renderLearn();else renderLab(button.getAttribute("data-lab"));}));
-document.getElementById("home-link").addEventListener("click",event=>{event.preventDefault();mode="lock";renderFileTool();});
+
+// Theme toggle
+(function(){
+  const btn = document.getElementById("theme-toggle");
+  const sun = document.getElementById("theme-icon-sun");
+  const moon = document.getElementById("theme-icon-moon");
+  if (!btn) return;
+  const saved = localStorage.getItem("theme");
+  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const apply = (dark) => {
+    document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+    sun.style.display = dark ? "block" : "none";
+    moon.style.display = dark ? "none" : "block";
+    localStorage.setItem("theme", dark ? "dark" : "light");
+  };
+  apply(saved ? saved === "dark" : prefersDark);
+  btn.addEventListener("click", () => {
+    const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+    apply(!isDark);
+  });
+})();
+
 renderFileTool();
