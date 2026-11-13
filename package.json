@@ -1,6 +1,6 @@
 {
   "name": "encovault",
-  "version": "2.0.14",
+  "version": "2.0.15",
   "description": "EncoVault - Local file security toolkit",
   "private": true,
   "scripts": {
