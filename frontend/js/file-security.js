@@ -4,11 +4,15 @@ async function lockFiles(){
   if(password.length<4){showMessage("Use a password with at least 4 characters.",true);return;}
   if(password!==confirm){showMessage("Passwords do not match.",true);return;}
   const profile=document.querySelector('input[name="profile"]:checked').value;const rounds=ITERATIONS[profile];
-  const compress=document.getElementById("compress-before-lock").checked;
+  const hash=document.getElementById("adv-hash")?.value||"SHA-256";
+  const keyBits=parseInt(document.getElementById("adv-key-bits")?.value||"256",10);
+  const advRounds=parseInt(document.getElementById("adv-rounds")?.value||rounds,10);
+  const compress=document.getElementById("adv-compress")?.value||(document.getElementById("compress-before-lock")?.checked?"auto":"never");
+  const iterations=document.getElementById("adv-rounds")?advRounds:rounds;
   const button=document.getElementById("run-file-action");button.disabled=true;button.textContent="Creating encrypted archive…";clearMessage();
   try{
     showProgress("Preparing protected archive",0,selectedFiles.length);
-    const encrypted=await encryptSelection(selectedFiles,password,rounds,compress,(current,total,file)=>showProgress(`Adding ${file.name}`,current,total));
+    const encrypted=await encryptSelection(selectedFiles,password,{iterations,hash,keyBits,compression:compress},(current,total,file)=>showProgress(`Adding ${file.name}`,current,total));
     showProgress("Encrypting archive",selectedFiles.length,selectedFiles.length);
     const firstPath=archivePath(selectedFiles[0]);const root=encrypted.isArchive?(firstPath.split("/")[0]||"EncoVault-archive"):firstPath.replace(/\.[^.]+$/,"");
     const outputName=`${root.replace(/[^a-z0-9._-]/gi,"-")||"EncoVault-archive"}.enco`;downloadBlob(encrypted.blob,outputName);

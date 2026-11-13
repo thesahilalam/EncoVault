@@ -1,6 +1,9 @@
 const MAGIC = new Uint8Array([69, 78, 67, 79, 86, 65, 85, 76, 84]);
 const HEADER_SIZE = 42;
+const HEADER_SIZE_V4 = 48;
 const ITERATIONS = {balanced: 600000, high: 900000};
+const HASH_IDS = {"SHA-256": 1, "SHA-384": 2, "SHA-512": 3};
+const KEY_BITS_IDS = {128: 1, 192: 2, 256: 3};
 
 const ARCHIVE_MAGIC = new Uint8Array([69, 86, 65, 82]); // "EVAR"
 const FLAG_GZIP = 1;
@@ -12,9 +15,9 @@ async function transformStream(blob, format, direction) {
   return new Blob([await new Response(blob.stream().pipeThrough(new StreamClass(format))).arrayBuffer()]);
 }
 
-async function deriveKey(password, salt, iterations) {
+async function deriveKey(password, salt, iterations, hash = "SHA-256", keyBits = 256) {
   const material = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveKey"]);
-  return crypto.subtle.deriveKey({name: "PBKDF2", salt, iterations, hash: "SHA-256"}, material, {name: "AES-GCM", length: 256}, false, ["encrypt", "decrypt"]);
+  return crypto.subtle.deriveKey({name: "PBKDF2", salt, iterations, hash}, material, {name: "AES-GCM", length: keyBits}, false, ["encrypt", "decrypt"]);
 }
 
 function makeHeader(iterations, salt, iv, version = 2) {
@@ -24,6 +27,18 @@ function makeHeader(iterations, salt, iv, version = 2) {
   new DataView(header.buffer).setUint32(10, iterations, false);
   header.set(salt, 14);
   header.set(iv, 30);
+  return header;
+}
+
+function makeHeaderV4(hashId, keyBitsId, iterations, salt, iv) {
+  const header = new Uint8Array(HEADER_SIZE_V4);
+  header.set(MAGIC, 0);
+  header[9] = 4;
+  header[10] = hashId;
+  header[11] = keyBitsId;
+  new DataView(header.buffer).setUint32(16, iterations, false);
+  header.set(salt, 20);
+  header.set(iv, 36);
   return header;
 }
 
@@ -93,20 +108,38 @@ function readArchive(bytes) {
 }
 
 async function encryptSelection(files, password, iterations, compress, onProgress = () => {}) {
+  // Legacy signature support — new code passes an options object.
+  let options;
+  if (typeof iterations === "object" && iterations !== null) {
+    options = iterations;
+    onProgress = compress;
+    compress = options.compression;
+    iterations = options.iterations;
+  }
+  const hash = options ? options.hash : "SHA-256";
+  const keyBits = options ? options.keyBits : 256;
+  if (!Object.hasOwn(HASH_IDS, hash)) throw new Error("Unsupported hash function selected.");
+  if (!Object.hasOwn(KEY_BITS_IDS, keyBits)) throw new Error("Unsupported key size selected.");
+  const version = options ? 4 : (files.length > 1 || Boolean(files[0].webkitRelativePath) ? 3 : 2);
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const isArchive = files.length > 1 || Boolean(files[0].webkitRelativePath);
   const displayName = isArchive ? "EncoVault archive" : files[0].name;
-  const header = makeHeader(iterations, salt, iv, isArchive ? 3 : 2);
-  const key = await deriveKey(password, salt, iterations);
+  const header = version === 4
+    ? makeHeaderV4(HASH_IDS[hash], KEY_BITS_IDS[keyBits], iterations, salt, iv)
+    : makeHeader(iterations, salt, iv, isArchive ? 3 : 2);
+  const key = await deriveKey(password, salt, iterations, hash, keyBits);
   const name = new TextEncoder().encode(displayName);
   let data = isArchive ? await createArchive(files, onProgress) : new Blob([await files[0].arrayBuffer()]);
   if (!isArchive) onProgress(1, 1, files[0]);
   let flags = isArchive ? FLAG_ARCHIVE : 0;
-  if (compress && data.size) {
+  const canCompress = typeof CompressionStream !== "undefined" && typeof DecompressionStream !== "undefined";
+  const wantCompress = compress === "always" || (compress === true) || (compress === "auto" && canCompress);
+  const shouldTry = (compress === "always" || compress === "auto") && canCompress;
+  if (shouldTry && data.size) {
     try {
       const candidate = await transformStream(data, "gzip", "compress");
-      if (candidate.size < data.size) {
+      if (compress === "always" || candidate.size < data.size) {
         data = candidate;
         flags |= FLAG_GZIP;
       }
@@ -120,25 +153,35 @@ async function encryptSelection(files, password, iterations, compress, onProgres
   payload.set(name, 5);
   payload.set(new Uint8Array(await data.arrayBuffer()), 5 + name.length);
   const ciphertext = new Uint8Array(await crypto.subtle.encrypt({name: "AES-GCM", iv, additionalData: header, tagLength: 128}, key, payload));
-  return { blob: new Blob([header, ciphertext], { type: "application/octet-stream" }), compressed: Boolean(flags & FLAG_GZIP), isArchive };
+  return { blob: new Blob([header, ciphertext], { type: "application/octet-stream" }), compressed: Boolean(flags & FLAG_GZIP), isArchive, version };
 }
 
 async function decryptFile(file, password) {
   const raw = new Uint8Array(await file.arrayBuffer());
-  if (raw.length < HEADER_SIZE + 16 || !MAGIC.every((byte, index) => raw[index] === byte) || ![1, 2, 3].includes(raw[9])) {
+  if (raw.length < HEADER_SIZE + 16 || !MAGIC.every((byte, index) => raw[index] === byte) || ![1, 2, 3, 4].includes(raw[9])) {
     throw new Error("This file is not a supported EncoVault file.");
   }
   const version = raw[9];
-  const header = raw.slice(0, HEADER_SIZE);
+  const headerSize = version === 4 ? HEADER_SIZE_V4 : HEADER_SIZE;
+  if (raw.length < headerSize + 16) throw new Error("This file is not a supported EncoVault file.");
+  const header = raw.slice(0, headerSize);
   const view = new DataView(header.buffer);
-  const iterations = view.getUint32(10, false);
-  if (!Object.values(ITERATIONS).includes(iterations)) throw new Error("Unsupported security profile in this file.");
-  const salt = header.slice(14, 30);
-  const iv = header.slice(30, 42);
-  const key = await deriveKey(password, salt, iterations);
+  let hash = "SHA-256", keyBits = 256, iterations;
+  if (version === 4) {
+    hash = Object.keys(HASH_IDS).find(k => HASH_IDS[k] === header[10]);
+    keyBits = Object.keys(KEY_BITS_IDS).find(k => KEY_BITS_IDS[Number(k)] === header[11]);
+    if (!hash || !keyBits) throw new Error("Unsupported settings in this file.");
+    iterations = view.getUint32(16, false);
+  } else {
+    iterations = view.getUint32(10, false);
+  }
+  if (!Object.values(ITERATIONS).includes(iterations) && version !== 4) throw new Error("Unsupported security profile in this file.");
+  const salt = version === 4 ? header.slice(20, 36) : header.slice(14, 30);
+  const iv = version === 4 ? header.slice(36, 48) : header.slice(30, 42);
+  const key = await deriveKey(password, salt, iterations, hash, keyBits);
   let plain;
   try {
-    plain = new Uint8Array(await crypto.subtle.decrypt({name: "AES-GCM", iv, additionalData: header, tagLength: 128}, key, raw.slice(HEADER_SIZE)));
+    plain = new Uint8Array(await crypto.subtle.decrypt({name: "AES-GCM", iv, additionalData: header, tagLength: 128}, key, raw.slice(headerSize)));
   } catch (error) {
     throw new Error("Password is incorrect or the file is damaged.");
   }
