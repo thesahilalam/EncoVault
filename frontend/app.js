@@ -13,7 +13,7 @@ function renderFileTool(){
   if(mode==="compress"){renderCompressionTool("compress");return;}
   content.className="content";
   const locking=mode==="lock";
-  crumb.textContent="File security";
+  crumb.textContent="Encryption";
   content.innerHTML=`<div class="page-head"><div class="page-head-text"><div class="eyebrow">PRIVATE FILE PROTECTION</div>
     <h1 class="page-title">${locking?"Lock your files.":"Unlock your files."}</h1>
     <p class="page-subtitle">${locking?"Encrypt one file, several files, or an entire folder into one .enco archive.":"Restore files from an .enco archive using its password."}</p></div>
@@ -90,8 +90,8 @@ function compressionInfoMarkup(method){
 function renderCompressionTool(action,method="gzip",preserveSelection=false){
   const compressing=action==="compress";
   mode="compress";compressionAction=action;compressionMethod=method;
-  crumb.textContent="Compress files";content.className="content";setActiveNav();
-  content.innerHTML=`<div class="page-head"><div class="page-head-text"><div class="eyebrow">COMPRESSION TOOL</div><h1 class="page-title">${compressing?"Compress files":"Decompress files"}</h1><p class="page-subtitle">${compressing?"Reduce file size locally into one .zip archive.":"Restore the original files inside a .zip archive."}</p></div><div class="mode-switch"><button class="mode-choice ${compressing?"selected":""}" data-compression-mode="compress">Compress</button><button class="mode-choice ${!compressing?"selected":""}" data-compression-mode="decompress">Decompress</button></div></div>
+  crumb.textContent="Compression";content.className="content";setActiveNav();
+  content.innerHTML=`<div class="page-head"><div class="page-head-text"><div class="eyebrow">COMPRESSION TOOL</div><h1 class="page-title">${compressing?"Compression":"Decompression"}</h1><p class="page-subtitle">${compressing?"Reduce file size locally into one .zip archive.":"Restore the original files inside a .zip archive."}</p></div><div class="mode-switch"><button class="mode-choice ${compressing?"selected":""}" data-compression-mode="compress">Compress</button><button class="mode-choice ${!compressing?"selected":""}" data-compression-mode="decompress">Decompress</button></div></div>
   <div class="file-workspace file-split"><section class="work-card">
     <h2 class="card-heading">${compressing?"Choose files or a folder":"Choose .zip files"}</h2>
     <p class="card-copy">${compressing?"Drop files below, browse your files, or choose a folder. Your selection becomes one standard .zip archive.":"Choose .zip archives to restore the original files. Multi-file archives come back as one folder."}</p>
@@ -102,7 +102,7 @@ function renderCompressionTool(action,method="gzip",preserveSelection=false){
     <h2 class="card-heading">${compressing?"Compression settings":"Decompression"}</h2>
     <p class="card-copy">${compressing?"Your files become one standard .zip archive that opens on any device.":"Restore files locally, in your browser."}</p>
     ${compressing?`<div class="compression-settings"><div class="field-label">COMPRESSION MODE</div><div class="compression-choice" role="group" aria-label="Compression quality"><button class="compression-choice-button ${compressionMode==="lossless"?"selected":""}" data-loss-mode="lossless">Lossless <small>exact restore</small></button><button class="compression-choice-button ${compressionMode==="lossy"?"selected":""}" data-loss-mode="lossy">Lossy <small>images only</small></button></div>${compressionMode==="lossy"?`<div class="lossy-options"><label>IMAGE QUALITY <output id="quality-value">${Math.round(imageQuality*100)}%</output><input id="image-quality" type="range" min="35" max="95" value="${Math.round(imageQuality*100)}"></label><label>OUTPUT FORMAT<select id="image-format" class="select"><option value="image/webp" ${imageFormat==="image/webp"?"selected":""}>WebP</option><option value="image/jpeg" ${imageFormat==="image/jpeg"?"selected":""}>JPEG</option></select></label><p>Images use the quality trade-off. PDFs, DOCX, videos and other files use safe lossless gzip automatically.</p></div>`:""}</div>`:""}
-    <button class="primary-button" id="run-file-action" ${selectedFiles.length?"":"disabled"}>${compressing?"Compress selection":"Decompress selection"}</button>
+    <button class="primary-button" id="run-file-action" ${selectedFiles.length?"":"disabled"}>${compressing?"Start compression":"Start decompression"}</button>
     <div id="operation-message"></div><div id="results"></div>
   </section></div>
   <div class="info-strip"><div class="side-card"><h3>${compressing?"How compression works":"How decompression works"}</h3><ul>${compressing?"<li>Compressed bytes are built in your browser, never uploaded.</li><li>Lossless deflate keeps every original byte.</li><li>Already-compressed media may not get smaller.</li>":"<li>Multi-file archives restore into one folder in a single step.</li><li>.zip archives also open natively on macOS and Windows.</li>"}</ul></div><div class="security-note"><strong>Local processing.</strong> Compression and decompression run entirely in your browser.</div></div>

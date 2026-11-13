@@ -43,8 +43,9 @@ function renderLearn(selected=0,openBranch=null){
 function renderLab(category){
   const labConfig = {
     classical: {label: "Historic Crypto & Cryptanalysis", crumb: "Classical Ciphers", summary: "Explore classical substitution, matrix encryption, and automated cryptanalysis.", tools: ["Caesar Cipher", "Vigenère Cipher", "Playfair Cipher", "Hill Cipher", "Cryptanalysis & Frequency"]},
-    modern: {label: "Modern Cryptography", crumb: "Modern Crypto", summary: "Block cipher modes, authenticated encryption, RSA and hashing — all running inside your browser.", tools: ["Block cipher modes — ECB vs GCM", "AES-GCM tamper test", "RSA step-by-step", "SHA-256 avalanche"]},
-    compression: {label: "Compression Lab", crumb: "Compression", summary: "Interactive demos on how data redundancy is removed.", tools: ["Run-length encoding", "Huffman coding", "Entropy explorer"]}
+    modern: {label: "Modern Cryptography", crumb: "Modern Crypto", summary: "Authenticated encryption, RSA, and hashing — entirely in your browser.", tools: ["Block cipher modes — ECB vs GCM", "AES-GCM tamper test", "RSA step-by-step", "SHA-256 avalanche"]},
+    compression: {label: "Compression Lab", crumb: "Compression", summary: "Interactive demos on how data redundancy is removed.", tools: ["Run-length encoding", "Huffman coding", "Entropy explorer"]},
+    network: {label: "Network Security Lab", crumb: "Network Security", summary: "TLS handshake, certificate chains, firewall rules, and MFA — all simulated locally.", tools: ["TLS handshake walk-through", "Certificate chain viewer", "Firewall rule builder", "MFA & password strength"]}
   };
   if(!labConfig[category]) category = "classical";
   mode="lab";activeLab=category;crumb.textContent=labConfig[category].crumb;content.className="content";setActiveNav();
@@ -60,7 +61,8 @@ function renderLabTool(category, name){
   const tools = {
     classical: ["Caesar Cipher", "Vigenère Cipher", "Playfair Cipher", "Hill Cipher", "Cryptanalysis & Frequency"],
     modern: ["Block cipher modes — ECB vs GCM", "AES-GCM tamper test", "RSA step-by-step", "SHA-256 avalanche"],
-    compression: ["Run-length encoding", "Huffman coding", "Entropy explorer"]
+    compression: ["Run-length encoding", "Huffman coding", "Entropy explorer"],
+    network: ["TLS handshake walk-through", "Certificate chain viewer", "Firewall rule builder", "MFA & password strength"]
   };
   const options = tools[category] || tools.classical;
   if(!options.includes(name)) name = options[0];
@@ -333,6 +335,49 @@ function renderLabTool(category, name){
           }).sort((a,b) => b.n - a.n);
           const maxH = Math.log2(counts.size);
           out.innerHTML = rows.map(r => `<div style="display:flex;align-items:center;gap:8px;margin:3px 0;"><span style="width:22px;font-weight:bold;color:#4f46e5;">${JSON.stringify(r.ch)}</span><div style="background:#eef0ff;border-radius:4px;height:14px;width:${Math.max(3, r.p*60)}%;"></div><span style="font-size:.75rem;color:#666;">p=${r.p.toFixed(3)} · ${r.bits.toFixed(3)} bits</span></div>`).join("") + `<br><b>H = ${H.toFixed(3)} bits/symbol</b> (max ${maxH.toFixed(3)} with ${counts.size} symbols)<br>8-bit input: ${sample.length*8} bits → lower-bound compressed ≈ ${Math.ceil(H*sample.length)} bits<br><small>Random text sits near 4.7 bits/symbol (English letters); pure noise near 8. The smaller H, the more headroom a compressor can exploit.</small>`;
+      };
+  } else if(name==="TLS handshake walk-through"){
+      target.innerHTML=`<div class="work-card"><h2>TLS Handshake</h2><p>Click through the standard TLS 1.3 handshake. It negotiates security without sending secrets in the clear.</p><div class="lab-row"><button class="browse-button" id="sim-run">Start Handshake</button></div><div class="lab-output" id="sim-output">Handshake sequence appears here.</div></div>`;
+      document.getElementById("sim-run").onclick = () => {
+          const steps = [
+              "1. ClientHello: Client sends supported ciphers & random number.",
+              "2. ServerHello: Server picks cipher & sends its certificate.",
+              "3. Certificate Verify: Client verifies server identity.",
+              "4. Key Exchange: Both compute shared secret (Diffie-Hellman).",
+              "5. Finished: Secure channel established. Encryption begins."
+          ];
+          let s = 0;
+          const out = document.getElementById("sim-output");
+          out.innerHTML = `<ul id="handshake-list" style="padding-left:20px;"></ul>`;
+          const list = document.getElementById("handshake-list");
+          const next = () => {
+              if (s < steps.length) {
+                  const li = document.createElement("li"); li.textContent = steps[s++]; list.appendChild(li);
+                  setTimeout(next, 800);
+              }
+          };
+          next();
+      };
+  } else if(name==="Certificate chain viewer"){
+      target.innerHTML=`<div class="work-card"><h2>Certificate chain</h2><p>View a mock trust chain from an end-site cert back to a trusted root.</p><div class="lab-row"><button class="browse-button" id="sim-run">Show Chain</button></div><div class="lab-output" id="sim-output">Result appears here.</div></div>`;
+      document.getElementById("sim-run").onclick = () => {
+          document.getElementById("sim-output").innerHTML = `<b>Root CA:</b> "DigiCert Global Root"<br>&nbsp;└─ <b>Intermediate CA:</b> "DigiCert TLS RSA SHA256"<br>&nbsp;&nbsp;&nbsp;└─ <b>End-site:</b> "encovault.vercel.app"<br><br><small>Your browser checks signatures in reverse: it already trusts the Root CA. Each link validates the next one until the site's cert is verified.</small>`;
+      };
+  } else if(name==="Firewall rule builder"){
+      target.innerHTML=`<div class="work-card"><h2>Firewall Rule Sandbox</h2><p>Sample rules: allow outbound HTTPS and DNS, deny all inbound.</p><label class="field-label">SAMPLE PACKET</label><select class="select" id="sim-input"><option value="https">Outbound HTTPS (TCP 443)</option><option value="ssh">Inbound SSH (TCP 22)</option></select><button class="browse-button" id="sim-run">Evaluate</button><div class="lab-output" id="sim-output"></div></div>`;
+      document.getElementById("sim-run").onclick = () => {
+          const p = document.getElementById("sim-input").value;
+          document.getElementById("sim-output").innerHTML = p === "https" ? '<b style="color:#0f9d6e;">ALLOW</b> · outbound traffic matches rule' : '<b style="color:#d93025;">DENY</b> · inbound traffic dropped by default';
+      };
+  } else if(name==="MFA & password strength"){
+      target.innerHTML=`<div class="work-card"><h2>MFA & Password Strength</h2><p>Estimate strength and see how MFA blocks stolen passwords.</p><label class="field-label">PASSWORD</label><input class="field" id="sim-input" placeholder="Type password..."><div class="lab-row"><label class="field-label">MFA CODE (Try "123456")</label><input class="field" id="sim-mfa" value="000000"></div><button class="browse-button" id="sim-run">Login</button><div class="lab-output" id="sim-output"></div></div>`;
+      document.getElementById("sim-run").onclick = () => {
+          const pwd = document.getElementById("sim-input").value;
+          const mfa = document.getElementById("sim-mfa").value;
+          const out = document.getElementById("sim-output");
+          if (pwd.length < 6) out.innerHTML = `<b style="color:#d93025;">DENY</b> · Password too short.`;
+          else if (mfa !== "123456") out.innerHTML = `<b style="color:#d93025;">DENY</b> · Correct password, but MFA code is wrong.`;
+          else out.innerHTML = `<b style="color:#0f9d6e;">ACCESS GRANTED</b> · MFA prevented account takeover!`;
       };
   } else {
       target.innerHTML=`<div class="work-card"><h2>${name}</h2><p>Interactive tool active.</p></div>`;
