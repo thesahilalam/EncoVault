@@ -43,13 +43,15 @@ function renderFileTool(){
   document.getElementById("file-picker").onchange=event=>setFiles(event.target.files);
   if(locking){document.getElementById("browse-folder").onclick=()=>document.getElementById("folder-picker").click();document.getElementById("folder-picker").onchange=event=>setFiles(event.target.files);}
   document.getElementById("reveal-password").onclick=()=>{const input=document.getElementById("password");input.type=input.type==="password"?"text":"password";document.getElementById("reveal-password").textContent=input.type==="password"?"SHOW":"HIDE";};
+  // Enter/Return key submits form (works for both lock and unlock)
+  const pwd=document.getElementById("password");
+  const confirm=document.getElementById("confirm-password");
+  const submitBtn=document.getElementById("run-file-action");
+  const handleEnter=e=>{if(e.key==="Enter"||e.key==="Return"){e.preventDefault();submitBtn.click();}};
+  [pwd, confirm].forEach(el=>el&&el.addEventListener("keydown",handleEnter));
   if(locking){
-    document.getElementById("password").addEventListener("input",updatePasswordStrength);
+    pwd.addEventListener("input",updatePasswordStrength);
     updatePasswordStrength();
-    // Enter key submits form
-    const pwd=document.getElementById("password");
-    const confirm=document.getElementById("confirm-password");
-    [pwd, confirm].forEach(el=>el&&el.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();document.getElementById("run-file-action").click();}}));
   }
   document.getElementById("run-file-action").onclick=locking?lockFiles:unlockFiles;
   const zone=document.getElementById("drop-zone");
