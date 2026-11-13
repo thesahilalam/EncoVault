@@ -1240,3 +1240,67 @@ h1, h2, h3, h4 { margin: 0; color: var(--ink); }
   color: #fff;
   border-color: #4f46e5;
 }
+
+/* Modern Crypto & Visual Lab extensions */
+.lab-grid3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.lab-grid3 canvas {
+  background: #000;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+  width: 100%;
+  max-width: 128px;
+  height: auto;
+  aspect-ratio: 1;
+  display: block;
+}
+
+.canvas-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #444;
+  margin-bottom: 4px;
+  letter-spacing: 0.05em;
+}
+
+/* SHA-256 Bit Grid Visualizer */
+.bit-grid {
+  display: grid;
+  grid-template-columns: repeat(32, 1fr);
+  gap: 2px;
+  margin: 10px 0;
+  padding: 8px;
+  background: #111;
+  border-radius: 6px;
+}
+
+.bit-cell {
+  aspect-ratio: 1;
+  background: #222;
+  border-radius: 2px;
+  font-size: 0;
+}
+
+.bit-cell.bit-flip {
+  background: #ef4444;
+  box-shadow: 0 0 4px rgba(239, 68, 68, 0.6);
+}
+
+/* Code Chips */
+.code-chip {
+  display: inline-block;
+  background: #f0f4ff;
+  color: #4f46e5;
+  border: 1px solid #d0d7ff;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.75rem;
+  font-family: monospace;
+  margin: 2px;
+}

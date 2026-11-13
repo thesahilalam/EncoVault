@@ -43,7 +43,7 @@ function renderLearn(selected=0,openBranch=null){
 function renderLab(category){
   const labConfig = {
     classical: {label: "Historic Crypto & Cryptanalysis", crumb: "Classical Ciphers", summary: "Explore classical substitution, matrix encryption, and automated cryptanalysis.", tools: ["Caesar Cipher", "Vigenère Cipher", "Playfair Cipher", "Hill Cipher", "Cryptanalysis & Frequency"]},
-    modern: {label: "Modern Cryptography", crumb: "Modern Crypto", summary: "Authenticated encryption, hashing, and public key techniques.", tools: ["AES-GCM demo", "RSA-OAEP demo", "SHA-256 hash"]},
+    modern: {label: "Modern Cryptography", crumb: "Modern Crypto", summary: "Block cipher modes, authenticated encryption, RSA and hashing — all running inside your browser.", tools: ["Block cipher modes — ECB vs GCM", "AES-GCM tamper test", "RSA step-by-step", "SHA-256 avalanche"]},
     compression: {label: "Compression Lab", crumb: "Compression", summary: "Interactive demos on how data redundancy is removed.", tools: ["Run-length encoding", "Huffman coding", "Entropy explorer"]}
   };
   if(!labConfig[category]) category = "classical";
@@ -59,7 +59,7 @@ function renderLab(category){
 function renderLabTool(category, name){
   const tools = {
     classical: ["Caesar Cipher", "Vigenère Cipher", "Playfair Cipher", "Hill Cipher", "Cryptanalysis & Frequency"],
-    modern: ["AES-GCM demo", "RSA-OAEP demo", "SHA-256 hash"],
+    modern: ["Block cipher modes — ECB vs GCM", "AES-GCM tamper test", "RSA step-by-step", "SHA-256 avalanche"],
     compression: ["Run-length encoding", "Huffman coding", "Entropy explorer"]
   };
   const options = tools[category] || tools.classical;
@@ -187,6 +187,152 @@ function renderLabTool(category, name){
           const maxCount = sorted[0][1];
           const bars = sorted.slice(0,8).map(([c,n]) => `<div style="display:flex;align-items:center;gap:8px;margin:3px 0;"><span style="width:16px;font-weight:bold;color:#4f46e5;">${c}</span><div style="background:#eef0ff;border-radius:4px;height:14px;width:${Math.max(4,(n/maxCount)*60)}%;"></div><span style="font-size:.75rem;color:#666;">${n} (${(n/cleanText.length*100).toFixed(1)}%)</span></div>`).join("");
           document.getElementById("sim-output").innerHTML = `<b>Letter frequencies:</b>${bars}<b>Index of coincidence:</b> ${ic.toFixed(4)} · English ≈ 0.066, random ≈ 0.038 ${ic>0.055?'· <span style="color:#0f9d6e;font-weight:bold;">looks like a monoalphabetic substitution</span>':'· spread out — likely polyalphabetic or short sample'}<br><br><b>Chi-squared Caesar crack:</b> best shift <b>${bestShift}</b> (χ² = ${bestChi.toFixed(1)})<br><span style="color:#0f9d6e;font-weight:bold;">${crackedText}</span>`;
+      };
+  } else if(name==="Block cipher modes — ECB vs GCM"){
+      target.innerHTML=`<div class="work-card"><h2>Block cipher modes — ECB vs GCM</h2><p>The same image encrypted two ways. <strong>ECB</strong> encrypts every 16-byte block independently, so identical blocks become identical ciphertext — the pattern survives encryption. <strong>GCM</strong> (what EncoVault uses) mixes each block with the message position, so nothing leaks.</p><button class="browse-button" id="sim-run">Encrypt the sample image both ways</button><div class="lab-grid3" id="lab-canvas-grid"><div><span class="canvas-label">PLAIN</span><canvas id="cv-plain" width="128" height="128"></canvas></div><div><span class="canvas-label">ECB</span><canvas id="cv-ecb" width="128" height="128"></canvas></div><div><span class="canvas-label">AES-GCM</span><canvas id="cv-gcm" width="128" height="128"></canvas></div></div><div class="lab-output" id="sim-output">Result will appear here.</div></div>`;
+      document.getElementById("sim-run").onclick = async () => {
+          const out = document.getElementById("sim-output");
+          const size = 64; // 64x64 bytes: one gray byte per pixel, clean 16-byte AES blocks
+          const plain = new Uint8Array(size*size);
+          for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+              const tile = (x>>4) + (y>>4); // strong repeating structure in 16px tiles
+              plain[y*size+x] = tile % 2 ? 255 : (x % 16 < 4 ? 0 : 120);
+          }
+          const key = new Uint8Array([...Array(16)].map((_,i)=>i));
+          const ecb = AES.ecbEncrypt(plain, key);
+          let gcm;
+          try {
+              const ck = await crypto.subtle.importKey("raw", key, "AES-GCM", false, ["encrypt"]);
+              const iv = new Uint8Array(12); // fixed IV keeps the demo deterministic
+              gcm = new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM", iv}, ck, plain));
+          } catch (error) { out.textContent = "WebCrypto AES-GCM unavailable in this browser: " + error.message; return; }
+          const paint = (id, bytes) => { const cv = document.getElementById(id); if (!cv || !cv.getContext) return; const ctx = cv.getContext("2d"); const img = ctx.createImageData(size, size); for (let i = 0; i < bytes.length; i++) { img.data[i*4]=img.data[i*4+1]=img.data[i*4+2]=bytes[i]; img.data[i*4+3]=255; } ctx.putImageData(img, 0, 0); };
+          paint("cv-plain", plain); paint("cv-ecb", ecb); paint("cv-gcm", gcm);
+          const dupBlocks = arr => { const seen = new Map(); for (let o = 0; o < arr.length; o += 16) { const k = arr.slice(o, o+16).join(","); seen.set(k, (seen.get(k)||0)+1); } let d = 0; seen.forEach(n => { if (n > 1) d += n; }); return d; };
+          const ecbDup = dupBlocks(ecb), gcmDup = dupBlocks(gcm);
+          out.innerHTML = `<b>${plain.length/16} AES blocks.</b> ECB ciphertext contains <b style="color:#d93025;">${ecbDup} duplicated blocks</b> → the eye still sees shapes and edges inside the "noise". AES-GCM contains <b style="color:#0f9d6e;">${gcmDup} duplicated blocks</b> → a genuine pattern block.<br><small>Teaching image encrypted with the demo key 000102…0f. ECB runs on a pure-JS AES core verified against FIPS-197 test vectors; GCM uses your browser's native AES. Real EncoVault files always use GCM.</small>`;
+      };
+  } else if(name==="AES-GCM tamper test"){
+      target.innerHTML=`<div class="work-card"><h2>AES-GCM tamper test</h2><p>GCM is <em>authenticated</em> encryption: a 16-byte tag proves integrity. Encrypt a message, flip one ciphertext bit, and watch decryption reject it.</p><label class="field-label">MESSAGE</label><textarea class="lab-input" id="sim-input">Transfer Rs 100 to Alice</textarea><div class="lab-row"><button class="browse-button" id="sim-run">Encrypt</button><button class="browse-button secondary-button" id="sim-tamper" disabled>Flick one ciphertext bit</button><button class="browse-button secondary-button" id="sim-decrypt" disabled>Attempt decrypt</button></div><div class="lab-output" id="sim-output">Encrypt a message to start.</div></div>`;
+      let encIv = null, encBytes = null, encKey = null, tampered = false;
+      document.getElementById("sim-run").onclick = async () => {
+          const out = document.getElementById("sim-output");
+          const msg = document.getElementById("sim-input").value;
+          if (!msg) { out.textContent = "Enter a message first."; return; }
+          encKey = await crypto.subtle.importKey("raw", crypto.getRandomValues(new Uint8Array(32)), "AES-GCM", false, ["encrypt","decrypt"]);
+          encIv = crypto.getRandomValues(new Uint8Array(12));
+          const buf = await crypto.subtle.encrypt({name:"AES-GCM", iv: encIv, tagLength: 128}, encKey, new TextEncoder().encode(msg));
+          encBytes = new Uint8Array(buf); tampered = false;
+          document.getElementById("sim-tamper").disabled = false;
+          document.getElementById("sim-decrypt").disabled = false;
+          out.innerHTML = `<b>Sealed:</b> ${encBytes.length} bytes ciphertext (${encBytes.length-msg.length} B overhead = 12 B nonce + 16 B tag).<br><code style="font-size:.7rem;word-break:break-all;">${AES.hex(encBytes.subarray(0, 48))}…</code>`;
+      };
+      document.getElementById("sim-tamper").onclick = () => {
+          if (!encBytes) return;
+          encBytes[20] ^= 0x01; tampered = true;
+          document.getElementById("sim-output").innerHTML += `<br><b style="color:#d93025;">One bit flipped at byte 20.</b> Now try decrypting.`;
+      };
+      document.getElementById("sim-decrypt").onclick = async () => {
+          if (!encBytes) return;
+          const out = document.getElementById("sim-output");
+          try {
+              const pt = await crypto.subtle.decrypt({name:"AES-GCM", iv: encIv, tagLength: 128}, encKey, encBytes);
+              out.innerHTML += `<br><b style="color:#0f9d6e;">DECRYPTED OK:</b> "${new TextDecoder().decode(pt)}" ${tampered ? "· unusual — the flip happened to land safely" : "· nothing was modified"}`;
+          } catch (error) {
+              out.innerHTML += `<br><b style="color:#d93025;">REJECTED — authentication tag mismatch.</b><br>GCM proved the data changed. This is how EncoVault blocks silently corrupted or maliciously edited .enco files.`;
+          }
+      };
+  } else if(name==="RSA step-by-step"){
+      target.innerHTML=`<div class="work-card"><h2>RSA step-by-step</h2><p>Textbook RSA with small primes so every number stays visible. Real RSA uses 2048-bit primes — small primes here are strictly for learning.</p><div class="lab-row"><div><label class="field-label">PRIME P</label><input class="field" id="rsa-p" value="17"></div><div><label class="field-label">PRIME Q</label><input class="field" id="rsa-q" value="11"></div><div><label class="field-label">MESSAGE NUMBER (0..n−1)</label><input class="field" id="rsa-m" value="88"></div></div><button class="browse-button" id="sim-run">Run keygen + encrypt + decrypt</button><div class="lab-output" id="sim-output">Steps will appear here.</div></div>`;
+      document.getElementById("sim-run").onclick = () => {
+          const out = document.getElementById("sim-output");
+          const gcd = (a,b) => b ? gcd(b, a%b) : a;
+          const egcd = (a,b) => { if (!b) return [1, 0]; const [x, y] = egcd(b, a % b); return [y, x - Math.floor(a / b) * y]; };
+          const modInv = (a,m) => { const [x] = egcd(a,m); return ((x % m)+m)%m; };
+          const powmod = (base, e, m) => { let r = 1n; base = BigInt(base)%BigInt(m); e = BigInt(e); m = BigInt(m); while (e > 0n) { if (e & 1n) r = r*base % m; base = base*base % m; e >>= 1n; } return Number(r); };
+          const p = parseInt(document.getElementById("rsa-p").value, 10), q = parseInt(document.getElementById("rsa-q").value, 10);
+          const m0 = parseInt(document.getElementById("rsa-m").value, 10);
+          const small = [2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97];
+          if (!small.includes(p) || !small.includes(q) || p === q) { out.textContent = "Pick two different primes from 2…97 for this classroom demo."; return; }
+          const n = p*q, phi = (p-1)*(q-1);
+          let e = 3; while (gcd(e, phi) !== 1 && e < phi) e += 2;
+          if (gcd(e, phi) !== 1) { out.textContent = "No suitable e found; try different primes."; return; }
+          const d = modInv(e, phi);
+          if (!Number.isInteger(m0) || m0 < 0 || m0 >= n) { out.textContent = `Message number must be 0..${n-1} for this key.`; return; }
+          const c = powmod(m0, e, n), mBack = powmod(c, d, n);
+          out.innerHTML = `<b>1.</b> n = p × q = ${p} × ${q} = <b>${n}</b><br><b>2.</b> φ(n) = (p−1)(q−1) = ${p-1} × ${q-1} = <b>${phi}</b><br><b>3.</b> public e with gcd(e, φ) = 1 → <b>e = ${e}</b><br><b>4.</b> private d: e·d ≡ 1 (mod φ) → <b>d = ${d}</b> (check: ${e}·${d} = ${e*d} = ${(e*d)%phi} + k·${phi})<br><b>5.</b> encrypt: c = m^e mod n = ${m0}^${e} mod ${n} = <b>${c}</b><br><b>6.</b> decrypt: m = c^d mod n = ${c}^${d} mod ${n} = <b>${mBack}</b> ${mBack===m0?'<span style="color:#0f9d6e;font-weight:bold;">✓ round-trip matches</span>':'<span style="color:#d93025;">✗ mismatch</span>'}<br><small>Public key = (n=${n}, e=${e}) — anyone can encrypt. Only d=${d} recovers the message. With 1024-bit p and q this rests on the hardness of factoring ${n}.</small>`;
+      };
+  } else if(name==="SHA-256 avalanche"){
+      target.innerHTML=`<div class="work-card"><h2>SHA-256 avalanche & integrity check</h2><p>Change one character and watch the entire 256-bit digest scramble — that is the avalanche effect behind every checksum and digital signature.</p><label class="field-label">ORIGINAL TEXT</label><textarea class="lab-input" id="sim-input">The quick brown fox</textarea><label class="field-label">MODIFIED TEXT (try one letter)</label><textarea class="lab-input" id="sim-input2">The quick brown goat</textarea><button class="browse-button" id="sim-run">Hash both</button><div class="lab-output" id="sim-output">Digests and bit-diff will appear here.</div></div>`;
+      document.getElementById("sim-run").onclick = async () => {
+          const out = document.getElementById("sim-output");
+          const a = new TextEncoder().encode(document.getElementById("sim-input").value);
+          const b = new TextEncoder().encode(document.getElementById("sim-input2").value);
+          if (!a.length && !b.length) { out.textContent = "Enter at least one text first."; return; }
+          const ha = new Uint8Array(await crypto.subtle.digest("SHA-256", a));
+          const hb = new Uint8Array(await crypto.subtle.digest("SHA-256", b));
+          let diffBits = 0, grid = "";
+          for (let i = 0; i < 32; i++) { const x = ha[i] ^ hb[i]; for (let k = 0; k < 8; k++) { const on = (x >> k) & 1; diffBits += on; grid += `<span class="bit-cell ${on?"bit-flip":""}">${on?"1":"0"}</span>`; } }
+          out.innerHTML = `<b>SHA-256 #1:</b> <code style="word-break:break-all;">${AES.hex(ha)}</code><br><b>SHA-256 #2:</b> <code style="word-break:break-all;">${AES.hex(hb)}</code><br><div class="bit-grid">${grid}</div><b>${diffBits}/256 bits flipped (${(diffBits/256*100).toFixed(1)}%)</b> — ideal is ≈50%. ${diffBits > 90 && diffBits < 166 ? '<span style="color:#0f9d6e;font-weight:bold;">Healthy avalanche ✓</span>' : '<span style="color:#b06000;">Weak flip rate — use two different sentences.</span>'}<br><small>Grid shows digest #1's bits; highlighted cells differ in digest #2. One edited byte in a file is why every checksum and signature fails.</small>`;
+      };
+  } else if(name==="Run-length encoding"){
+      target.innerHTML=`<div class="work-card"><h2>Run-length encoding</h2><p>Replace long runs of one symbol with the symbol plus a count. Great for repeating data; tiny files can actually grow.</p><label class="field-label">SAMPLE DATA</label><textarea class="lab-input" id="sim-input">AAAAABBBCCDAAAAA</textarea><button class="browse-button" id="sim-run">Encode</button><div class="lab-output" id="sim-output">Result will appear here.</div></div>`;
+      document.getElementById("sim-run").onclick = () => {
+          const sample = document.getElementById("sim-input").value;
+          const out = document.getElementById("sim-output");
+          if (!sample) { out.textContent = "Enter sample data first."; return; }
+          let encoded = "", runs = 0;
+          for (let i = 0; i < sample.length;) {
+              let j = i + 1;
+              while (j < sample.length && sample[j] === sample[i]) j++;
+              const run = j - i;
+              encoded += (sample[i] === " " ? "␣" : sample[i]) + (run > 1 ? "×" + run : "");
+              runs += run > 1 ? 1 : 0;
+              i = j;
+          }
+          out.innerHTML = `<b>RLE runs:</b> ${encoded.trim()}<br><b>Input:</b> ${sample.length} symbols → <b>Encoded display:</b> ${encoded.trim().length} characters · ${runs} long run${runs===1?"":"s"} detected<br><small>Real formats (PNG, RLE .pack, fax G3) pack each symbol+count into exact bytes, so the true ratio is better than this display suggests.</small>`;
+      };
+  } else if(name==="Huffman coding"){
+      target.innerHTML=`<div class="work-card"><h2>Huffman coding</h2><p>Frequent symbols get short bit codes, rare symbols get longer ones. The tree is prefix-free, so decoding is unambiguous.</p><label class="field-label">SAMPLE TEXT</label><textarea class="lab-input" id="sim-input">AABBBCCCC</textarea><button class="browse-button" id="sim-run">Build code tree</button><div class="lab-output" id="sim-output">Code table and encoded bits will appear here.</div></div>`;
+      document.getElementById("sim-run").onclick = () => {
+          const sample = document.getElementById("sim-input").value;
+          const out = document.getElementById("sim-output");
+          if (!sample) { out.textContent = "Enter sample text first."; return; }
+          const counts = new Map();
+          for (const ch of sample) counts.set(ch, (counts.get(ch)||0)+1);
+          let queue = [...counts].map(([ch, c]) => ({ ch, c, l: null, r: null }));
+          while (queue.length > 1) {
+              queue.sort((a,b) => a.c - b.c || a.c - b.c);
+              const l = queue.shift(), r = queue.shift();
+              queue.push({ ch: null, c: l.c + r.c, l, r });
+          }
+          const codes = {};
+          const visit = (node, prefix) => {
+              if (node.ch !== null) { codes[node.ch] = prefix || "0"; return; }
+              visit(node.l, prefix + "0"); visit(node.r, prefix + "1");
+          };
+          visit(queue[0], "");
+          const table = Object.entries(codes).map(([ch, code]) => `<span class="code-chip">${JSON.stringify(ch)} → ${code}</span>`).join(" ");
+          const bits = [...sample].map(ch => codes[ch]).join("");
+          const avg = bits.length / sample.length;
+          out.innerHTML = `<b>Code table:</b> ${table}<br><b>Encoded:</b> <code style="word-break:break-all;">${bits}</code><br>${sample.length} symbols × 8 bits = ${sample.length*8} input bits → <b>${bits.length} encoded bits</b> (${(avg).toFixed(2)} bits/symbol vs 8)${sample.length*8 > bits.length ? `<span style="color:#0f9d6e;font-weight:bold;"> · ${(100 - bits.length*100/(sample.length*8)).toFixed(1)}% smaller</span>` : " · <em>not worth it for tiny samples — the code table itself must be stored too</em>"}<br><small>Each character's code length is ⌈−log₂ p⌉-ish: frequent symbols shorter, rare symbols longer. DEFLATE (ZIP/gzip) builds on exactly this idea.</small>`;
+      };
+  } else if(name==="Entropy explorer"){
+      target.innerHTML=`<div class="work-card"><h2>Entropy explorer</h2><p>Shannon entropy measures average surprise per symbol. High repetition = low entropy = more compressible.</p><label class="field-label">SAMPLE TEXT</label><textarea class="lab-input" id="sim-input">AAAAABBBCCDAA</textarea><button class="browse-button" id="sim-run">Analyze</button><div class="lab-output" id="sim-output">Entropy and per-symbol breakdown will appear here.</div></div>`;
+      document.getElementById("sim-run").onclick = () => {
+          const sample = document.getElementById("sim-input").value;
+          const out = document.getElementById("sim-output");
+          if (!sample) { out.textContent = "Enter sample text first."; return; }
+          const counts = new Map();
+          for (const ch of sample) counts.set(ch, (counts.get(ch)||0)+1);
+          let H = 0;
+          const rows = [...counts].map(([ch, n]) => {
+              const p = n / sample.length;
+              H -= p * Math.log2(p);
+              return { ch, n, p, bits: -p * Math.log2(p) };
+          }).sort((a,b) => b.n - a.n);
+          const maxH = Math.log2(counts.size);
+          out.innerHTML = rows.map(r => `<div style="display:flex;align-items:center;gap:8px;margin:3px 0;"><span style="width:22px;font-weight:bold;color:#4f46e5;">${JSON.stringify(r.ch)}</span><div style="background:#eef0ff;border-radius:4px;height:14px;width:${Math.max(3, r.p*60)}%;"></div><span style="font-size:.75rem;color:#666;">p=${r.p.toFixed(3)} · ${r.bits.toFixed(3)} bits</span></div>`).join("") + `<br><b>H = ${H.toFixed(3)} bits/symbol</b> (max ${maxH.toFixed(3)} with ${counts.size} symbols)<br>8-bit input: ${sample.length*8} bits → lower-bound compressed ≈ ${Math.ceil(H*sample.length)} bits<br><small>Random text sits near 4.7 bits/symbol (English letters); pure noise near 8. The smaller H, the more headroom a compressor can exploit.</small>`;
       };
   } else {
       target.innerHTML=`<div class="work-card"><h2>${name}</h2><p>Interactive tool active.</p></div>`;
