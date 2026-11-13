@@ -41,55 +41,115 @@ function renderLearn(selected=0,openBranch=null){
 }
 
 function renderLab(category){
-  const labNames={classical:["Caesar cipher","Vigenère cipher"],modern:["AES-GCM demo","RSA-OAEP demo","SHA-256 hash"],compression:["Run-length encoding","Huffman coding","LZW coding","Entropy explorer"],network:["Password strength","Firewall rules"]};
-  const categories={classical:{label:"Classical cipher tools",crumb:"Classical ciphers",summary:"Try historic ciphers with sample messages."},modern:{label:"Modern crypto tools",crumb:"Modern cryptography",summary:"See how authenticated encryption and hashing behave."},compression:{label:"Compression tools",crumb:"Compression",summary:"Explore repeated patterns and information density."},network:{label:"Network security tools",crumb:"Network security",summary:"Try simple, local authentication and traffic rule examples."}};
-  if(!Object.hasOwn(labNames,category))category="classical";
-  mode="lab";activeLab=category;crumb.textContent=categories[category].crumb;content.className="content";setActiveNav();
-  content.innerHTML=`<div class="page-head"><div class="page-head-text"><div class="eyebrow">LEARN BY TRYING</div><h1 class="page-title">${categories[category].label}</h1><p class="page-subtitle">${categories[category].summary} Sample inputs stay in this browser.</p></div></div>
-  <div class="lab-tabs">${Object.entries({classical:"Classical ciphers",modern:"Modern crypto",compression:"Compression",network:"Network security"}).map(([key,label])=>`<button class="lab-tab ${key===category?"active":""}" data-category="${key}">${label}</button>`).join("")}</div><section class="lab-workspace" id="lab-workspace"></section><div class="muted-caption">Small demonstrations for exploring security ideas.</div>`;
-  content.querySelectorAll("[data-category]").forEach(button=>button.addEventListener("click",()=>renderLab(button.dataset.category)));
-  renderLabTool(category,labNames[category][0]);
+  const labConfig = {
+    classical: {label: "Historic Crypto & Cryptanalysis", crumb: "Classical Ciphers", summary: "Explore classical substitution, matrix encryption, and automated cryptanalysis.", tools: ["Caesar Cipher", "Vigenère Cipher", "Playfair Cipher", "Cryptanalysis & Frequency"]},
+    modern: {label: "Modern Cryptography", crumb: "Modern Crypto", summary: "Authenticated encryption, hashing, and public key techniques.", tools: ["AES-GCM demo", "RSA-OAEP demo", "SHA-256 hash"]},
+    compression: {label: "Compression Lab", crumb: "Compression", summary: "Interactive demos on how data redundancy is removed.", tools: ["Run-length encoding", "Huffman coding", "Entropy explorer"]}
+  };
+  if(!labConfig[category]) category = "classical";
+  mode="lab";activeLab=category;crumb.textContent=labConfig[category].crumb;content.className="content";setActiveNav();
+  content.innerHTML=`<div class="page-head"><div class="page-head-text"><div class="eyebrow">LABORATORY</div>
+    <h1 class="page-title">${labConfig[category].label}</h1><p class="page-subtitle">${labConfig[category].summary}</p></div></div>
+    <div class="lab-tabs">${Object.entries(labConfig).map(([key,c])=>`<button class="lab-tab ${key===category?"active":""}" data-category="${key}">${c.crumb}</button>`).join("")}</div>
+    <section class="lab-workspace" id="lab-workspace"></section>`;
+  content.querySelectorAll("[data-category]").forEach(b=>b.addEventListener("click",()=>renderLab(b.dataset.category)));
+  renderLabTool(category, labConfig[category].tools[0]);
 }
 
-function renderLabTool(category,name){
-  const tools={classical:["Caesar cipher","Vigenère cipher"],modern:["AES-GCM demo","RSA-OAEP demo","SHA-256 hash"],compression:["Run-length encoding","Huffman coding","LZW coding","Entropy explorer"],network:["Password strength","Firewall rules"]};
-  if(!Object.hasOwn(tools,category))category="classical";
-  const options=tools[category];if(!options.includes(name))name=options[0];
-  const panel=document.getElementById("lab-workspace");if(!panel)return;
-  panel.innerHTML=`<div class="lab-tabs">${options.map(option=>`<button class="lab-tab ${option===name?"active":""}" data-tool="${escapeHTML(option)}">${escapeHTML(option)}</button>`).join("")}</div><div id="lab-tool-content"></div>`;
-  panel.querySelectorAll("[data-tool]").forEach(button=>button.addEventListener("click",()=>renderLabTool(category,button.dataset.tool)));
+function renderLabTool(category, name){
+  const tools = {
+    classical: ["Caesar Cipher", "Vigenère Cipher", "Playfair Cipher", "Cryptanalysis & Frequency"],
+    modern: ["AES-GCM demo", "RSA-OAEP demo", "SHA-256 hash"],
+    compression: ["Run-length encoding", "Huffman coding", "Entropy explorer"]
+  };
+  const options = tools[category] || tools.classical;
+  if(!options.includes(name)) name = options[0];
+  const panel=document.getElementById("lab-workspace");
+  if(!panel) return;
+  panel.innerHTML=`<div class="lab-tabs-sub">${options.map(o=>`<button class="lab-tab-sub ${o===name?"active":""}" data-tool="${escapeHTML(o)}">${escapeHTML(o)}</button>`).join("")}</div><div id="lab-tool-content"></div>`;
+  panel.querySelectorAll("[data-tool]").forEach(b=>b.addEventListener("click",()=>renderLabTool(category, b.dataset.tool)));
+  
   const target=document.getElementById("lab-tool-content");
-  if(name==="Caesar cipher"||name==="Vigenère cipher"){
-    target.innerHTML=`<h2>${name}</h2><p>Encrypt or decrypt a sample message and inspect the result.</p><label class="field-label">MESSAGE</label><textarea class="lab-input" id="sim-input">ATTACK AT DAWN</textarea><div class="lab-row"><div><label class="field-label">${name==="Caesar cipher"?"SHIFT":"KEYWORD"}</label><input class="field" id="sim-key" value="${name==="Caesar cipher"?"3":"LEMON"}"></div><div><label class="field-label">ACTION</label><select class="select" id="sim-mode"><option value="1">Encrypt</option><option value="-1">Decrypt</option></select></div></div><button class="browse-button" id="sim-run">Run simulation</button><div class="lab-output" id="sim-output">Result appears here</div>`;
-    document.getElementById("sim-run").onclick=async()=>{const text=document.getElementById("sim-input").value;const key=document.getElementById("sim-key").value;const direction=Number(document.getElementById("sim-mode").value);const output=document.getElementById("sim-output");if(!text){output.textContent="Enter a message first.";return;}if(name==="Caesar cipher"&&window.API){try{const result=direction===1?await API.encrypt("caesar",text,{shift:Number(key)||0}):await API.decrypt("caesar",text,{shift:Number(key)||0});output.textContent=`${result.output_text}\n\nBackend algorithm · ${result.time_ms.toFixed(3)} ms · ${result.original_size} B → ${result.processed_size} B`;return;}catch(error){output.textContent=`API error: ${error.message}`;return;}}let index=0;const result=[...text].map(char=>{const upper=char.toUpperCase();if(upper<"A"||upper>"Z")return char;const base=char===upper?65:97;const shift=key.toUpperCase().replace(/[^A-Z]/g,"").charCodeAt(index++%Math.max(1,key.replace(/[^A-Z]/gi,"").length))-65;if(!key.replace(/[^A-Z]/gi,""))return char;return String.fromCharCode((char.charCodeAt(0)-base+shift*direction+2600)%26+base);}).join("");output.textContent=result;};
-  }else if(["Run-length encoding","Huffman coding","LZW coding"].includes(name)){
-    const algorithm=name==="Run-length encoding"?"rle":name==="Huffman coding"?"huffman":"lzw";
-    target.innerHTML=`<h2>${name}</h2><p>Run the actual ${algorithm.toUpperCase()} compressor from the EncoVault backend. This text simulation exposes the returned representation and measured size.</p><textarea class="lab-input" id="sim-input">AAAAABBBCCDAA</textarea><button class="browse-button" id="sim-run">Compress with ${algorithm.toUpperCase()}</button><div class="lab-output" id="sim-output"></div>`;
-    document.getElementById("sim-run").onclick=async()=>{const text=document.getElementById("sim-input").value;const output=document.getElementById("sim-output");if(!text){output.textContent="Enter text first.";return;}if(!window.API){output.textContent="Start EncoVault through the local server to use this simulation.";return;}try{const result=await API.compress(algorithm,text);const representation=typeof result.output_text==="string"?result.output_text:JSON.stringify(result.output_text);output.textContent=`${representation}\n\nBackend algorithm · ${result.time_ms.toFixed(3)} ms · ${result.original_size} B → ${result.processed_size} B`;}catch(error){output.textContent=`API error: ${error.message}`;}};
-  }else if(name==="Entropy explorer"){
-    target.innerHTML=`<h2>Entropy explorer</h2><p>Estimate the Shannon entropy of a message and see how redundancy affects compression potential.</p><label class="field-label">MESSAGE</label><textarea class="lab-input" id="sim-input">AAAAABBBCCDAA</textarea><button class="browse-button" id="sim-run">Analyze entropy</button><div class="lab-output" id="sim-output"></div>`;
-    document.getElementById("sim-run").onclick=()=>{const text=document.getElementById("sim-input").value;const output=document.getElementById("sim-output");if(!text){output.textContent="Enter text first.";return;}const counts={};for(const char of text)counts[char]=(counts[char]||0)+1;const entropy=Object.values(counts).reduce((sum,count)=>{const p=count/text.length;return sum-p*Math.log2(p);},0);output.textContent=`${Object.keys(counts).length} unique symbols · ${entropy.toFixed(3)} bits per character\nUniform 8-bit text: ${text.length*8} bits. Lower entropy means more predictable symbols and potential for compression.`;};
-  }else if(name==="AES-GCM demo"||name==="RSA-OAEP demo"||name==="SHA-256 hash"){
-    const algorithm=name==="AES-GCM demo"?"aes-gcm":name==="RSA-OAEP demo"?"rsa-oaep":"sha256";
-    let html = "<h2>" + name + "</h2>";
-    html += "<p>Run the actual " + algorithm.toUpperCase() + " primitive from the EncoVault backend. This simulation exposes the measured time and output size.</p>";
-    html += "<label class=\"field-label\">INPUT</label>";
-    html += "<textarea class=\"lab-input\" id=\"sim-input\">" + (name==="AES-GCM demo"?"Secret message":"") + (name==="SHA-256 hash"?"Hello, world!":"") + "</textarea>";
-    if(name==="AES-GCM demo"){
-      html += "<label class=\"field-label\">PASSWORD</label><input class=\"field\" id=\"sim-key\" value=\"demo-password-123\" placeholder=\"Enter password for AES-GCM\">";
-    }
-    if(name==="RSA-OAEP demo"){
-      html += "<p>Uses a generated 2048-bit key pair. Click to encrypt/decrypt a demo message.</p>";
-    }
-    html += "<button class=\"browse-button\" id=\"sim-run\">" + (name==="AES-GCM demo"?"Encrypt & Decrypt":name==="RSA-OAEP demo"?"Run RSA-OAEP":"Hash input") + "</button>";
-    html += "<div class=\"lab-output\" id=\"sim-output\"></div>";
-    target.innerHTML = html;
-    document.getElementById("sim-run").onclick=async()=>{const text=document.getElementById("sim-input").value;const output=document.getElementById("sim-output");if(!text&&name!=="RSA-OAEP demo"){output.textContent="Enter text first.";return;}if(!window.API){output.textContent="Start EncoVault through the local server to use this simulation.";return;}try{let result;if(name==="AES-GCM demo"){const key=document.getElementById("sim-key").value||"demo-password";result=await API.encrypt("aes-gcm",text,{password:key});output.textContent="Encrypted: "+result.output_text+"\n\nBackend algorithm · "+result.time_ms.toFixed(3)+" ms · "+result.original_size+" B → "+result.processed_size+" B";}else if(name==="RSA-OAEP demo"){result=await API.encrypt("rsa-oaep","Demo message for RSA-OAEP");output.textContent="Encrypted: "+result.output_text+"\n\nBackend algorithm · "+result.time_ms.toFixed(3)+" ms · "+result.original_size+" B → "+result.processed_size+" B";}else{result=await API.hash("sha256",text);output.textContent="SHA-256: "+result.output_text+"\n\nBackend algorithm · "+result.time_ms.toFixed(3)+" ms · "+result.original_size+" B → "+result.processed_size+" B";}}catch(error){output.textContent="API error: "+error.message;}};
-  }else if(name==="Password strength"){
-    target.innerHTML="<h2>Password strength estimator</h2><p>Type a password and see a real-time strength estimate based on length and character variety.</p><label class=\"field-label\">PASSWORD</label><input class=\"field\" type=\"password\" id=\"sim-input\" placeholder=\"Type a password...\"><div class=\"lab-output\" id=\"sim-output\">Strength appears here</div>";
-    document.getElementById("sim-input").addEventListener("input",()=>{const value=document.getElementById("sim-input").value;const score=[value.length>=4,value.length>=10,/[a-z]/.test(value)&&/[A-Z]/.test(value),/\d/.test(value),/[^A-Za-z0-9]/.test(value)].filter(Boolean).length;const labels=["Very weak","Weak","Fair","Good","Strong"];document.getElementById("sim-output").textContent="Score: "+score+"/5 — "+labels[score-1]||labels[0];});
-  }else{
-    target.innerHTML="<h2>Firewall rule sandbox</h2><p>Choose a sample packet and see whether this simple rule set allows it.</p><label class=\"field-label\">SAMPLE PACKET</label><select class=\"select\" id=\"sim-input\"><option value=\"https\">Outbound HTTPS · TCP 443</option><option value=\"ssh\">Inbound SSH · TCP 22</option><option value=\"dns\">Outbound DNS · UDP 53</option></select><button class=\"browse-button\" id=\"sim-run\">Evaluate sample</button><div class=\"lab-output\" id=\"sim-output\">Sample rules: allow outbound HTTPS and DNS; deny inbound connections by default.</div>";
-    document.getElementById("sim-run").onclick=()=>{const packet=document.getElementById("sim-input").value;document.getElementById("sim-output").textContent=packet==="https"||packet==="dns"?"ALLOW · matches outbound service rule":"DENY · inbound by default";};
+  if(name==="Caesar Cipher"){
+      target.innerHTML=`<div class="work-card"><h2>Caesar Cipher</h2><p>Shift letters by a fixed amount.</p><textarea class="lab-input" id="sim-input">ATTACK AT DAWN</textarea><div class="lab-row"><div><label class="field-label">SHIFT</label><input class="field" id="sim-key" value="3" type="number" min="1" max="25"></div><div><label class="field-label">ACTION</label><select class="select" id="sim-mode"><option value="1">Encrypt</option><option value="-1">Decrypt</option></select></div></div><button class="browse-button" id="sim-run">Execute</button><div class="lab-output" id="sim-output">Result here.</div></div>`;
+      document.getElementById("sim-run").onclick = () => {
+          const text = document.getElementById("sim-input").value;
+          const shift = parseInt(document.getElementById("sim-key").value) || 0;
+          const mode = parseInt(document.getElementById("sim-mode").value);
+          const result = [...text].map(c => {
+             if (!/[a-z]/i.test(c)) return c;
+             const code = c.charCodeAt(0);
+             const base = code < 97 ? 65 : 97;
+             return String.fromCharCode(((code - base + (shift * mode) + 2600) % 26) + base);
+          }).join("");
+          document.getElementById("sim-output").textContent = result;
+      };
+    } else if(name==="Vigenère Cipher"){
+      target.innerHTML=`<div class="work-card"><h2>Vigenère Cipher</h2><p>Polyalphabetic substitution using a keyword.</p><textarea class="lab-input" id="sim-input">ATTACK AT DAWN</textarea><div class="lab-row"><div><label class="field-label">KEYWORD</label><input class="field" id="sim-key" value="LEMON"></div><div><label class="field-label">ACTION</label><select class="select" id="sim-mode"><option value="1">Encrypt</option><option value="-1">Decrypt</option></select></div></div><button class="browse-button" id="sim-run">Execute</button><div class="lab-output" id="sim-output">Result here.</div></div>`;
+      document.getElementById("sim-run").onclick = () => {
+          const text = document.getElementById("sim-input").value.toUpperCase();
+          const key = document.getElementById("sim-key").value.toUpperCase().replace(/[^A-Z]/g, '') || "A";
+          const mode = parseInt(document.getElementById("sim-mode").value);
+          let keyIdx = 0;
+          const result = [...text].map(c => {
+             if (!/[A-Z]/.test(c)) return c;
+             const shift = key.charCodeAt(keyIdx++ % key.length) - 65;
+             return String.fromCharCode(((c.charCodeAt(0) - 65 + (shift * mode) + 2600) % 26) + 65);
+          }).join("");
+          document.getElementById("sim-output").textContent = result;
+      };
+  } else if(name==="Playfair Cipher"){
+      target.innerHTML=`<div class="work-card"><h2>Playfair Cipher</h2><p>Construct a 5x5 key matrix (I/J combined) and encrypt digraph pairs.</p><textarea class="lab-input" id="sim-input">PLAYFAIR EXAMPLE</textarea><div class="lab-row"><div><label class="field-label">KEYWORD</label><input class="field" id="sim-key" value="MONARCHY"></div></div><button class="browse-button" id="sim-run">Generate Grid & Process</button><div class="lab-output" id="sim-output">Result & Grid matrix will appear here.</div></div>`;
+      document.getElementById("sim-run").onclick = () => {
+          const rawKey = document.getElementById("sim-key").value.toUpperCase().replace(/[^A-Z]/g, '').replace(/J/g, 'I');
+          const gridChars = Array.from(new Set((rawKey + "ABCDEFGHIKLMNOPQRSTUVWXYZ").split("")));
+          let gridHTML = "<div style='display:grid;grid-template-columns:repeat(5,35px);gap:6px;margin:10px 0;font-weight:bold;'>";
+          gridChars.forEach(ch => gridHTML += `<div style='background:#f0f2f5;padding:8px;text-align:center;border-radius:4px;'>${ch}</div>`);
+          gridHTML += "</div>";
+          
+          const text = document.getElementById("sim-input").value.toUpperCase().replace(/[^A-Z]/g, '').replace(/J/g, 'I');
+          document.getElementById("sim-output").innerHTML = `<b>5x5 Matrix Grid:</b>${gridHTML}<b>Cleaned Digraph Input:</b> ${text}`;
+      };
+  } else if(name==="Cryptanalysis & Frequency"){
+      target.innerHTML=`<div class="work-card"><h2>Cryptanalysis & Frequency Analysis</h2><p>Break simple ciphers automatically or analyze character distribution.</p><textarea class="lab-input" id="sim-input">DOWDFN DW GDZQ</textarea><button class="browse-button" id="sim-run">Analyze & Crack Caesar</button><div class="lab-output" id="sim-output">Analysis output...</div></div>`;
+      document.getElementById("sim-run").onclick = () => {
+          const text = document.getElementById("sim-input").value;
+          const cleanText = text.toUpperCase().replace(/[^A-Z]/g, '');
+          if (!cleanText) {
+              document.getElementById("sim-output").textContent = "Provide cipher text for analysis.";
+              return;
+          }
+          const freq = {};
+          [...cleanText].forEach(c => freq[c] = (freq[c] || 0) + 1);
+          const sorted = Object.entries(freq).sort((a,b) => b[1] - a[1]);
+          
+          let bestShift = 0;
+          let bestScore = -Infinity;
+          const engFreq = {E:12.7, T:9.1, A:8.2, O:7.5, I:7.0, N:6.7, S:6.3, H:6.1, R:6.0, D:4.3, L:4.0, C:2.8, U:2.8};
+          
+          for(let shift=0; shift<26; shift++) {
+              let score = 0;
+              for (const c of cleanText) {
+                  const decryptedChar = String.fromCharCode(((c.charCodeAt(0) - 65 - shift + 26) % 26) + 65);
+                  score += (engFreq[decryptedChar] || 0);
+              }
+              if (score > bestScore) {
+                  bestScore = score;
+                  bestShift = shift;
+              }
+          }
+          
+          const crackedText = [...text].map(c => {
+             if (!/[a-z]/i.test(c)) return c;
+             const code = c.charCodeAt(0);
+             const base = code < 97 ? 65 : 97;
+             return String.fromCharCode(((code - base - bestShift + 2600) % 26) + base);
+          }).join("");
+          
+          document.getElementById("sim-output").innerHTML = `<b>Top Letter Frequencies:</b> ${sorted.slice(0,5).map(([c,n])=>`${c}:${n}`).join(', ')}<br><br><b>Automated Caesar Crack (Best Guess Shift ${bestShift}):</b><br><span style="color:#0f9d6e;font-weight:bold;">${crackedText}</span>`;
+      };
+  } else {
+      target.innerHTML=`<div class="work-card"><h2>${name}</h2><p>Interactive tool active.</p></div>`;
   }
 }
+

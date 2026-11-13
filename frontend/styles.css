@@ -1214,3 +1214,29 @@ h1, h2, h3, h4 { margin: 0; color: var(--ink); }
   margin-top: 12px;
   margin-bottom: 12px;
 }
+
+/* Lab Sub Tabs */
+.lab-tabs-sub {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.lab-tab-sub {
+  background: #f0f2f5;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: #555;
+  transition: all 0.2s ease;
+}
+
+.lab-tab-sub.active, .lab-tab-sub:hover {
+  background: #4f46e5;
+  color: #fff;
+  border-color: #4f46e5;
+}
