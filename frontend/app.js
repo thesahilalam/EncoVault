@@ -9,6 +9,42 @@ function setActiveNav(){
   navButtons.forEach(button=>button.classList.toggle("active",(button.dataset.mode==="lock"&&(mode==="lock"||mode==="unlock"))||button.dataset.mode===mode||button.dataset.lab===activeLab&&mode==="lab"||button.hasAttribute("data-learn")&&mode==="learn"));
 }
 
+
+function updateAnalyzer(password){
+  const bf = document.getElementById("brute-force-est");
+  const ent = document.getElementById("entropy-est");
+  const cp = document.getElementById("compress-est");
+  if (!bf || !ent) return;
+  if (!password || password.length < 4) { bf.textContent = "—"; ent.textContent = "—"; if(cp) cp.textContent = "—"; return; }
+  let pool = 0;
+  if (/[a-z]/.test(password)) pool += 26;
+  if (/[A-Z]/.test(password)) pool += 26;
+  if (/[0-9]/.test(password)) pool += 10;
+  if (/[^a-zA-Z0-9]/.test(password)) pool += 32;
+  const entropy = password.length * Math.log2(pool);
+  const guesses = 1e7;
+  const seconds = Math.pow(2, entropy) / (2 * guesses);
+  const years = seconds / (3600 * 24 * 365);
+  let timeStr;
+  if (years < 1) timeStr = "< 1 year";
+  else if (years < 1e3) timeStr = "~" + years.toFixed(1) + " years";
+  else if (years < 1e6) timeStr = "~" + (years/1e3).toFixed(1) + "K years";
+  else if (years < 1e9) timeStr = "~" + (years/1e6).toFixed(1) + "M years";
+  else if (years < 1e12) timeStr = "~" + (years/1e9).toFixed(1) + "B years";
+  else timeStr = "> 1T years";
+  bf.textContent = timeStr + " @ 10M guesses/sec";
+  ent.textContent = entropy.toFixed(1);
+  if (cp) {
+    const totalSize = selectedFiles.reduce((s, f) => s + f.size, 0);
+    if (totalSize > 0) {
+      // rough estimate: text files compress well, images/videos don't
+      const hasText = selectedFiles.some(f => f.type.startsWith("text/") || f.name.endsWith(".txt") || f.name.endsWith(".js") || f.name.endsWith(".json") || f.name.endsWith(".html") || f.name.endsWith(".css") || f.name.endsWith(".md"));
+      const estRatio = hasText ? 0.35 : 0.95;
+      cp.textContent = "~" + (totalSize * estRatio / 1024 / 1024).toFixed(2) + " MB (est.) from " + (totalSize / 1024 / 1024).toFixed(2) + " MB";
+    }
+  }
+}
+
 function renderFileTool(){
   if(mode==="compress"){renderCompressionTool("compress");return;}
   content.className="content";
@@ -33,6 +69,7 @@ function renderFileTool(){
       ${locking?'<div class="field-label">CONFIRM PASSWORD</div><input class="field" id="confirm-password" type="password" autocomplete="new-password" placeholder="Enter password again">':""}
       ${locking?'<div class="field-label">SECURITY PROFILE</div><div class="profile-grid"><label class="profile-option"><input type="radio" name="profile" value="balanced" checked><span><strong>Balanced</strong><small>AES-256-GCM · 600,000 rounds</small></span></label><label class="profile-option"><input type="radio" name="profile" value="high"><span><strong>High protection</strong><small>AES-256-GCM · 900,000 rounds</small></span></label></div>':""}
       ${locking?'<label class="compress-toggle"><input type="checkbox" id="compress-before-lock"><span><strong>Compress before locking</strong><small>Use lossless gzip when it makes the file smaller.</small></span></label>':""}
+      ${locking?'<div class="analyzer-bar" id="analyzer-bar" style="display:none;margin-top:16px;padding:16px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface-2);"><div class="lab-row"><div><div class="field-label">EST. BRUTE-FORCE TIME</div><div id="brute-force-est" style="font-family:var(--mono);font-size:1.1rem;color:var(--ink);">—</div></div><div><div class="field-label">ENTROPY</div><div id="entropy-est" style="font-family:var(--mono);font-size:1.1rem;color:var(--ink);">— bits</div></div></div><div class="lab-row"><div><div class="field-label">COMPRESSION PREVIEW</div><div id="compress-est" style="font-family:var(--mono);font-size:1.1rem;color:var(--ink);">—</div></div></div></div>':""}
       ${locking?'<div class="advanced-toggle"><button type="button" class="secondary-button" id="toggle-advanced">Advanced options ▸</button></div>':""}
       ${locking?'<div id="advanced-options" style="display:none;margin-top:16px;padding:16px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface-2);"><div class="lab-row"><div><div class="field-label">AES KEY SIZE</div><select class="select" id="adv-key-bits"><option value="256" selected>AES-256 (default)</option><option value="192">AES-192</option><option value="128">AES-128</option></select></div><div><div class="field-label">KDF HASH</div><select class="select" id="adv-hash"><option value="SHA-256" selected>SHA-256 (default)</option><option value="SHA-384">SHA-384</option><option value="SHA-512">SHA-512</option></select></div></div><div class="lab-row"><div><div class="field-label">PBKDF2 ROUNDS</div><input class="field" id="adv-rounds" type="number" min="100000" max="5000000" step="100000" value="600000"></div><div><div class="field-label">COMPRESSION</div><select class="select" id="adv-compress"><option value="auto" selected>Auto (gzip if smaller)</option><option value="always">Always gzip</option><option value="never">Never</option></select></div></div></div>':""}
       <button class="primary-button" id="run-file-action">${locking?"Lock selection · Create .enco":"Unlock selected files"}</button>
@@ -58,6 +95,14 @@ function renderFileTool(){
   if(locking){
     pwd.addEventListener("input",updatePasswordStrength);
     updatePasswordStrength();
+    // X-Ray + Analyzer
+    pwd.addEventListener("input", () => {
+      const bar = document.getElementById("analyzer-bar");
+      if (bar) bar.style.display = pwd.value.length >= 4 ? "block" : "none";
+      updateAnalyzer(pwd.value);
+    });
+    const cb = document.getElementById("compress-before-lock");
+    if (cb) cb.addEventListener("change", () => updateAnalyzer(pwd.value));
   }
   document.getElementById("run-file-action").onclick=locking?lockFiles:unlockFiles;
   const zone=document.getElementById("drop-zone");

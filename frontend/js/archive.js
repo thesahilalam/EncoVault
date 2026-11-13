@@ -107,6 +107,41 @@ function readArchive(bytes) {
   return entries;
 }
 
+function parseEncoHeader(raw) {
+  if (!raw || raw.length < HEADER_SIZE || !MAGIC.every((b, i) => raw[i] === b)) return null;
+  const version = raw[9];
+  const headerSize = version === 4 ? HEADER_SIZE_V4 : HEADER_SIZE;
+  if (raw.length < headerSize) return null;
+  const header = raw.slice(0, headerSize);
+  const view = new DataView(header.buffer, header.byteOffset, header.byteLength);
+  let hash = "SHA-256", keyBits = 256, iterations;
+  if (version === 4) {
+    hash = Object.keys(HASH_IDS).find(k => HASH_IDS[k] === header[10]) || "SHA-256";
+    keyBits = Object.keys(KEY_BITS_IDS).find(k => KEY_BITS_IDS[Number(k)] === header[11]) || 256;
+    iterations = view.getUint32(16, false);
+  } else {
+    iterations = view.getUint32(10, false);
+  }
+  const salt = version === 4 ? header.slice(20, 36) : header.slice(14, 30);
+  const iv = version === 4 ? header.slice(36, 48) : header.slice(30, 42);
+  const flags = version === 1 ? 0 : (raw[headerSize + 4] || 0);
+  return { version, hash, keyBits, iterations, salt, iv, flags, headerSize };
+}
+
+function estimateBruteForce(password) {
+  let pool = 0;
+  if (/[a-z]/.test(password)) pool += 26;
+  if (/[A-Z]/.test(password)) pool += 26;
+  if (/[0-9]/.test(password)) pool += 10;
+  if (/[^a-zA-Z0-9]/.test(password)) pool += 32;
+  if (pool === 0) return { entropy: 0, timeYears: 0 };
+  const entropy = password.length * Math.log2(pool);
+  const guessesPerSec = 1e7;
+  const seconds = Math.pow(2, entropy) / (2 * guessesPerSec);
+  const years = seconds / (3600 * 24 * 365);
+  return { entropy: Math.round(entropy * 10) / 10, timeYears: years };
+}
+
 async function encryptSelection(files, password, iterations, compress, onProgress = () => {}) {
   // Legacy signature support — new code passes an options object.
   let options;

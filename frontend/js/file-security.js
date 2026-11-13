@@ -30,6 +30,8 @@ async function unlockFiles(){
       if(output.archive){for(let index=0;index<output.archive.length;index++){const entry=output.archive[index];showProgress(`Restoring ${entry.path.split("/").pop()}`,index+1,output.archive.length);const downloadName=entry.path.replaceAll("/","__");downloadBlob(entry.blob,downloadName);results.push({name:entry.path,source:file.name,detail:"restored from archive"});await sleep(120);}}
       else{downloadBlob(output.blob,output.name);results.push({name:output.name,source:file.name});showProgress(`Restored ${output.name}`,i+1,selectedFiles.length);}
       if(i<selectedFiles.length-1)await sleep(180);}
+    // Add integrity badge to each result
+    results.forEach(r => r.detail = (r.detail ? r.detail + " · " : "") + "✓ Integrity verified (GCM tag)");
     showResults("Files unlocked",results,"restored");
     resetFileTool();
   }catch(error){showMessage(error.message||"Could not unlock the selected files.",true);}finally{button.disabled=selectedFiles.length===0;button.textContent="Unlock selected files";}
