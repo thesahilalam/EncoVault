@@ -984,3 +984,233 @@ h1, h2, h3, h4 { margin: 0; color: var(--ink); }
     animation-duration: 0.01ms !important;
   }
 }
+
+/* Password section spacing */
+.password-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.confirm-password-wrap {
+  margin-top: 8px;
+}
+
+/* Reveal button positioning */
+.password-wrap .reveal {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #666;
+  font-size: 0.75rem;
+  padding: 4px 8px;
+}
+
+/* Field label spacing */
+.field-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #444;
+  margin-bottom: 6px;
+}
+
+/* Profile options spacing */
+.profile-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.profile-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.profile-option:hover {
+  border-color: #4f46e5;
+  background: #f5f4ff;
+}
+
+.profile-option input[type="radio"] {
+  accent-color: #4f46e5;
+}
+
+.profile-option strong {
+  font-size: 0.85rem;
+  color: #111;
+}
+
+.profile-option small {
+  color: #666;
+  font-size: 0.75rem;
+}
+
+/* Protection summary */
+.protection-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.protection-summary span {
+  font-size: 0.75rem;
+  color: #333;
+  background: white;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+
+/* Compress toggle */
+.compress-toggle {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.compress-toggle input[type="checkbox"] {
+  accent-color: #4f46e5;
+  width: 18px;
+  height: 18px;
+}
+
+.compress-toggle strong {
+  font-size: 0.85rem;
+  color: #111;
+}
+
+.compress-toggle small {
+  color: #666;
+  font-size: 0.75rem;
+}
+
+/* Info strip cards */
+.side-card h3 {
+  font-size: 0.8rem;
+  color: #111;
+  margin-bottom: 10px;
+}
+
+.side-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.side-card li {
+  font-size: 0.8rem;
+  color: #444;
+  padding: 6px 0;
+  padding-left: 20px;
+  position: relative;
+}
+
+.side-card li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: #0f9d6e;
+  font-weight: bold;
+}
+
+.security-note {
+  margin-top: 16px;
+  padding: 12px;
+  background: #f0f7ff;
+  border-radius: 8px;
+  border-left: 3px solid #4f46e5;
+  font-size: 0.8rem;
+  color: #333;
+}
+
+/* Ensure proper spacing in work card */
+.work-card > * + * {
+  margin-top: 16px;
+}
+
+.work-card > .field-label:first-of-type {
+  margin-top: 0;
+}
+
+
+/* Fix password/confirm password spacing */
+.work-card .field-label + .password-wrap,
+.work-card .field-label + .confirm-password-wrap {
+  margin-top: 6px;
+}
+
+.confirm-password-wrap {
+  margin-top: 16px !important;
+}
+
+.password-wrap {
+  margin-top: 6px;
+}
+
+/* Ensure button has proper margin from fields */
+.work-card .primary-button {
+  margin-top: 20px;
+}
+
+/* Better form field spacing */
+.work-card > .field-label:not(:first-child) {
+  margin-top: 16px;
+}
+
+/* Password strength meter spacing */
+.password-strength {
+  margin-top: 6px;
+  margin-bottom: 8px;
+}
+
+/* Profile options better spacing */
+.profile-grid {
+  margin-top: 12px !important;
+}
+
+.profile-option {
+  margin-bottom: 8px;
+}
+
+/* Compress toggle spacing */
+.compress-toggle {
+  margin-top: 16px !important;
+}
+
+/* Protection summary spacing */
+.protection-summary {
+  margin-top: 16px !important;
+}
+
+/* Results spacing */
+.result-card {
+  margin-top: 16px;
+}
+
+/* Operation message spacing */
+#operation-message {
+  margin-top: 12px;
+  margin-bottom: 12px;
+}

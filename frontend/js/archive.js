@@ -142,7 +142,7 @@ async function decryptFile(file, password) {
   } catch (error) {
     throw new Error("Password is incorrect or the file is damaged.");
   }
-  const nameOffset = version === 2 ? 5 : 4;
+  const nameOffset = (version === 2 || version === 3) ? 5 : 4;
   if (plain.length < nameOffset) throw new Error("Encrypted file contents are invalid.");
   const nameLength = new DataView(plain.buffer, plain.byteOffset, plain.byteLength).getUint32(0, false);
   if (nameLength > plain.length - nameOffset) throw new Error("Encrypted file name is invalid.");
