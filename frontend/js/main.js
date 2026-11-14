@@ -9,7 +9,7 @@ import * as FileSecurity from "./file-security.js";
 import * as Compress from "./compress.js";
 import * as AES from "./aes.js";
 import * as Reference from "./reference.js";
-import { initApp } from "./app.js";
+import { initApp } from "../app.js";
 
 // Make AES and API available globally for backward compatibility
 // (reference.js and some legacy code uses window.AES and window.API)

@@ -4,10 +4,29 @@
   "description": "EncoVault - Local file security toolkit",
   "private": true,
   "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "bump": "node scripts/bump-version.js",
     "bump:patch": "node scripts/bump-version.js patch",
     "bump:minor": "node scripts/bump-version.js minor",
     "bump:major": "node scripts/bump-version.js major"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "terser": "^5.51.2",
+    "vite": "^8.3.8"
+  },
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thesahilalam/EncoVault.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/thesahilalam/EncoVault/issues"
+  },
+  "homepage": "https://github.com/thesahilalam/EncoVault#readme"
 }

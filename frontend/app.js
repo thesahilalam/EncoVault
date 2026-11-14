@@ -1,12 +1,12 @@
 // Entry point - imports all modules and initializes the app
-import * as API from "./api.js";
-import * as UI from "./ui.js";
-import * as Zip from "./zip.js";
-import * as Archive from "./archive.js";
-import * as FileSecurity from "./file-security.js";
-import * as Compress from "./compress.js";
-import * as AES from "./aes.js";
-import * as Reference from "./reference.js";
+import * as API from "./js/api.js";
+import * as UI from "./js/ui.js";
+import * as Zip from "./js/zip.js";
+import * as Archive from "./js/archive.js";
+import * as FileSecurity from "./js/file-security.js";
+import * as Compress from "./js/compress.js";
+import * as AES from "./js/aes.js";
+import * as Reference from "./js/reference.js";
 
 // Make AES and API available globally for backward compatibility (reference.js uses window.AES)
 if (typeof window !== "undefined") {
