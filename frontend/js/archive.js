@@ -1,4 +1,4 @@
-const MAGIC = new Uint8Array([69, 78, 67, 79, 86, 65, 85, 76, 84]);
+export const MAGIC = new Uint8Array([69, 78, 67, 79, 86, 65, 85, 76, 84]);
 const HEADER_SIZE = 42;
 const HEADER_SIZE_V4 = 48;
 const ITERATIONS = {balanced: 600000, high: 900000};
@@ -10,7 +10,7 @@ const FLAG_GZIP = 1;
 const FLAG_ARCHIVE = 2;
 const MAX_ARCHIVE_BYTES = 250 * 1024 * 1024;
 
-async function transformStream(blob, format, direction) {
+export async function transformStream(blob, format, direction) {
   const StreamClass = direction === "compress" ? CompressionStream : DecompressionStream;
   return new Blob([await new Response(blob.stream().pipeThrough(new StreamClass(format))).arrayBuffer()]);
 }
@@ -20,7 +20,7 @@ async function deriveKey(password, salt, iterations, hash = "SHA-256", keyBits =
   return crypto.subtle.deriveKey({name: "PBKDF2", salt, iterations, hash}, material, {name: "AES-GCM", length: keyBits}, false, ["encrypt", "decrypt"]);
 }
 
-function makeHeader(iterations, salt, iv, version = 2) {
+export function makeHeader(iterations, salt, iv, version = 2) {
   const header = new Uint8Array(HEADER_SIZE);
   header.set(MAGIC, 0);
   header[9] = version;

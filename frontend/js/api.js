@@ -3,7 +3,7 @@
  * Communicates with the FastAPI backend at http://localhost:8000
  */
 
-const API_BASE = (window.location.origin && window.location.origin.startsWith('http')) 
+export const API_BASE = (window.location.origin && window.location.origin.startsWith('http')) 
   ? `${window.location.origin}/api` 
   : 'http://localhost:8000/api';
 
@@ -27,7 +27,7 @@ async function _fetch(path, options = {}) {
   return res.json();
 }
 
-const API = {
+export const API = {
   /**
    * GET /api/algorithms
    * Returns the full algorithm registry from the backend.

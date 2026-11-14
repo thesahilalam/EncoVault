@@ -1,3 +1,19 @@
+// Entry point - imports all modules and initializes the app
+import * as API from "./api.js";
+import * as UI from "./ui.js";
+import * as Zip from "./zip.js";
+import * as Archive from "./archive.js";
+import * as FileSecurity from "./file-security.js";
+import * as Compress from "./compress.js";
+import * as AES from "./aes.js";
+import * as Reference from "./reference.js";
+
+// Make AES and API available globally for backward compatibility (reference.js uses window.AES)
+if (typeof window !== "undefined") {
+  window.AES = AES.AES;
+  window.API = API.API;
+}
+
 const content = document.getElementById("content");
 const crumb = document.getElementById("crumb");
 const navButtons = [...document.querySelectorAll("[data-mode], [data-lab], [data-learn]")];
@@ -315,3 +331,9 @@ document.getElementById("home-link").addEventListener("click",event=>{event.prev
 })();
 
 renderFileTool();
+
+// Export init function for main.js
+export function initApp() {
+  // The app initializes itself when the module loads
+  // But we export this for explicit control
+}

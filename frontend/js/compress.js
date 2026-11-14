@@ -1,7 +1,7 @@
 // Compression Tool: Compress and Decompress operations
 
-function isImageFile(file){return file.type.startsWith("image/")||/\.(png|jpe?g|webp|gif|bmp|avif)$/i.test(file.name);}
-async function compressImage(file,quality,format){
+export function isImageFile(file){return file.type.startsWith("image/")||/\.(png|jpe?g|webp|gif|bmp|avif)$/i.test(file.name);}
+export async function compressImage(file,quality,format){
   if(typeof createImageBitmap!=="function")throw new Error("This browser cannot recompress images locally.");
   const bitmap=await createImageBitmap(file);const canvas=document.createElement("canvas");canvas.width=bitmap.width;canvas.height=bitmap.height;const context=canvas.getContext("2d");
   if(format==="image/jpeg"){context.fillStyle="#fff";context.fillRect(0,0,canvas.width,canvas.height);}

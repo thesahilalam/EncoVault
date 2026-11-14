@@ -1,6 +1,6 @@
 // Security Reference: Learn and Lab pages
 
-const keyConcepts=[
+export const keyConcepts=[
   ["Security goals","The CIA triad","The CIA triad describes the three outcomes a secure system should protect. Confidentiality limits who can read information, integrity helps detect unauthorised changes, and availability keeps data and services usable when needed.","When evaluating a control, ask which goal it supports. Encryption mainly protects confidentiality, hashes help check integrity, and backups and redundancy improve availability."],
   ["Risk basics","Threats, vulnerabilities and attacks","A threat is a possible source of harm, such as a malicious user or a hardware failure. A vulnerability is a weakness that can be used or triggered. An attack is the actual attempt to exploit that weakness and cause an unwanted result.","Security teams reduce risk by finding weaknesses early, limiting exposure, adding detection, and preparing a recovery path when prevention fails."],
   ["Encryption","Plaintext, ciphertext and keys","Plaintext is readable input such as a document or message. Encryption uses an algorithm and a key to turn it into ciphertext, which should be unintelligible without the required key. Decryption reverses the process for an authorised user.","A strong design can keep the algorithm public; the secret that must be protected is the key or password. EncoVault combines a password derived key with authenticated encryption so modified data is rejected."],
@@ -24,7 +24,7 @@ const referenceTree=[
   {title:"Compression and data",hint:"Work smarter with data",items:[11,12,13]},
 ];
 
-function renderLearn(selected=0,openBranch=null){
+export function renderLearn(selected=0,openBranch=null){
   if(!Number.isInteger(selected)||selected<0||selected>=keyConcepts.length)selected=0;
   const branch=openBranch===null?Math.max(0,referenceTree.findIndex(branch=>branch.items.includes(selected))):openBranch;
   const currentBranch=referenceTree[branch]||referenceTree[0];
