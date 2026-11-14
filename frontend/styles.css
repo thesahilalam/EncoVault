@@ -407,7 +407,10 @@ h1, h2, h3, h4 { margin: 0; color: var(--ink); }
   grid-template-columns: minmax(0, 1.02fr) minmax(340px, 0.98fr);
 }
 .file-split .work-card { display: flex; flex-direction: column; }
-.file-split .primary-button { margin-top: auto; }
+/* Button keeps a guaranteed 24px gap above it (auto pushed it to the card bottom
+   and left zero spacing when the card content filled the height). */
+.file-split .primary-button { margin-top: 24px; }
+.file-split .work-card { padding-bottom: 24px; }
 
 /* Explanatory content moved below the action area. */
 .info-strip {
@@ -505,7 +508,7 @@ h1, h2, h3, h4 { margin: 0; color: var(--ink); }
 
 .primary-button {
   width: 100%;
-  margin-top: 18px;
+  margin-top: 24px;
   background: var(--primary);
   color: #fff;
   padding: 13px;
