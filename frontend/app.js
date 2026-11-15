@@ -2,22 +2,6 @@
 // Globals from: api.js, ui.js, zip.js, archive.js, file-security.js,
 // compress.js, aes.js, store.js, reference.js
 
-console.log("[app.js] load started");
-
-// Emergency debug: check if DOM is ready
-if (document.readyState === "loading") {
-  console.log("[app.js] DOM not ready yet, waiting...");
-  document.addEventListener("DOMContentLoaded", () => {
-    console.log("[app.js] DOM ready, initializing...");
-    try { initApp(); console.log("[app.js] initApp() success"); }
-    catch(e) { console.error("[app.js] initApp error:", e); }
-  });
-} else {
-  console.log("[app.js] DOM already ready");
-  try { initApp(); console.log("[app.js] initApp() success"); }
-  catch(e) { console.error("[app.js] initApp error:", e); }
-}
-
 function initDOMElements() {
   const content = document.getElementById("content");
   const crumb = document.getElementById("crumb");
@@ -30,9 +14,12 @@ function initDOMElements() {
 
 let content, crumb, navButtons, selectedFiles, activeLab;
 
+function getMode() {
+  return useUI().getState().mode;
+}
+
 function setActiveNav(){
-  function getMode() { return useUI.getState().mode; }
-  function getActiveLab() { return useUI.getState().activeLab; }
+  function getActiveLab() { return useUI().getState().activeLab; }
   navButtons.forEach(button=>button.classList.toggle("active",(button.dataset.mode==="lock"&&(getMode()==="lock"||getMode()==="unlock"))||button.dataset.mode===getMode()||button.dataset.lab===getActiveLab()&&getMode()==="lab"||button.hasAttribute("data-learn")&&getMode()==="learn"));
 }
 
@@ -79,18 +66,18 @@ function renderFileTool(){
   crumb.textContent="Encryption";
   content.innerHTML=`<div class="page-head"><div class="page-head-text"><div class="eyebrow">PRIVATE FILE PROTECTION</div>
     <h1 class="page-title">${locking?"Lock your files.":"Unlock your files."}</h1>
-    <p class="page-subtitle">${locking?"Encrypt one file, several files, or an entire folder into one .enco archive.":"Restore files from an .enco archive using its password."}</p></div>
+    <p class="page-subtitle">${locking?"Encrypt one file, several files, or an entire folder into one .encovault archive.":"Restore files from an .encovault archive using its password."}</p></div>
     <div class="mode-switch file-mode-switch" role="group" aria-label="Choose file security action"><button class="mode-choice ${locking?"selected":""}" data-file-mode="lock" aria-pressed="${locking}">Lock files</button><button class="mode-choice ${!locking?"selected":""}" data-file-mode="unlock" aria-pressed="${!locking}">Unlock files</button></div></div>
     <div class="file-workspace file-split"><section class="work-card">
-      <h2 class="card-heading">${locking?"Choose files or a folder":"Choose .enco files"}</h2>
-      <p class="card-copy">${locking?"Drop files below, browse your files, or choose a folder. Your selection becomes one encrypted download.":"Select one or more .enco files. Restored files download from your browser."}</p>
-      <input id="file-picker" type="file" ${locking?"multiple":"multiple accept='.enco'"} hidden>
+      <h2 class="card-heading">${locking?"Choose files or a folder":"Choose .encovault files"}</h2>
+      <p class="card-copy">${locking?"Drop files below, browse your files, or choose a folder. Your selection becomes one encrypted download.":"Select one or more .encovault files. Restored files download from your browser."}</p>
+      <input id="file-picker" type="file" ${locking?"multiple":"multiple accept='.encovault,.enco'"} hidden>
       ${locking?'<input id="folder-picker" type="file" webkitdirectory directory multiple hidden>':""}
       <div class="drop-zone" id="drop-zone"><div><div class="drop-icon">${locking?"↥":"🔓"}</div><h3>${locking?"Drop files here":"Drop encrypted files here"}</h3><p>or choose from this device</p><button class="browse-button" id="browse-files">Browse files</button>${locking?'<button class="browse-button secondary-button" id="browse-folder">Choose folder</button>':""}</div></div>
       <div id="file-list" class="file-list"></div><div id="file-summary" class="file-summary"></div>
     </section><section class="work-card">
       <h2 class="card-heading">${locking?"Vault security & options":"Unlock password"}</h2>
-      <p class="card-copy">${locking?"Create a strong password to protect your files.":"Enter the password used when creating this .enco archive."}</p>
+      <p class="card-copy">${locking?"Create a strong password to protect your files.":"Enter the password used when creating this .encovault archive."}</p>
       <div class="field-label">${locking?"VAULT PASSWORD":"PASSWORD"}</div><div class="password-wrap"><input class="field" id="password" type="password" autocomplete="new-password" placeholder="${locking?"Create a strong password":"Enter password"}"><button class="reveal" id="reveal-password" type="button">SHOW</button></div>
       ${locking?'<div class="password-strength" id="password-strength"><div class="strength-track"><span></span></div><small>Use at least 4 characters.</small></div>':""}
       ${locking?'<div class="field-label">CONFIRM PASSWORD</div><input class="field" id="confirm-password" type="password" autocomplete="new-password" placeholder="Enter password again">':""}
@@ -100,14 +87,14 @@ function renderFileTool(){
       ${locking?'<div class="keymgmt-bar" id="keymgmt-bar" style="display:none;margin-top:16px;padding:16px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface-2);"><div class="lab-row"><div><div class="field-label">KEY FILE (2FA)</div><select class="select" id="km-keyfile"><option value="none" selected>Disabled</option><option value="generate">Generate .key file</option><option value="require">Require existing .key</option></select></div><div><div class="field-label">THRESHOLD</div><select class="select" id="km-threshold"><option value="2">2 of 3</option><option value="3">3 of 5</option></select></div></div><div class="lab-row"><div><div class="field-label">TIME LOCK</div><input class="field" id="km-timelock" type="datetime-local"></div></div></div>':""}
       ${locking?'<div class="advanced-toggle"><button type="button" class="secondary-button" id="toggle-advanced">Advanced options ▸</button></div>':""}
       ${locking?'<div id="advanced-options" style="display:none;margin-top:16px;padding:16px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface-2);"><div class="lab-row"><div><div class="field-label">AES KEY SIZE</div><select class="select" id="adv-key-bits"><option value="256" selected>AES-256 (default)</option><option value="192">AES-192</option><option value="128">AES-128</option></select></div><div><div class="field-label">KDF HASH</div><select class="select" id="adv-hash"><option value="SHA-256" selected>SHA-256 (default)</option><option value="SHA-384">SHA-384</option><option value="SHA-512">SHA-512</option></select></div></div><div class="lab-row"><div><div class="field-label">PBKDF2 ROUNDS</div><input class="field" id="adv-rounds" type="number" min="100000" max="5000000" step="100000" value="600000"></div><div><div class="field-label">COMPRESSION</div><select class="select" id="adv-compress"><option value="auto" selected>Auto (gzip if smaller)</option><option value="always">Always gzip</option><option value="never">Never</option></select></div></div></div>':""}
-      <button class="primary-button" id="run-file-action">${locking?"Lock selection · Create .enco":"Unlock selected files"}</button>
+      <button class="primary-button" id="run-file-action">${locking?"Lock selection · Create .encovault":"Unlock selected files"}</button>
       <div id="operation-message"></div><div id="results"></div>
     </section></div>
     <div class="info-strip"><div class="side-card"><h3>${locking?"How file locking works":"Unlock safely"}</h3><ul>${locking?"<li>A fresh random salt and nonce are created per file.</li><li>File contents and original names are encrypted together.</li><li>Your password stays in this browser and is never uploaded.</li>":"<li>Only valid EncoVault archives are accepted.</li><li>The correct password is required for authenticated decryption.</li><li>Restored files download to your browser’s chosen location.</li>"}</ul></div>${locking?'<div class="side-card"><h3>Security profiles</h3><p><strong>Balanced · 600,000 rounds</strong> derives the key from your password with a strong delay.</p><p><strong>High protection · 900,000 rounds</strong> applies more derivation work for sensitive files.</p></div>':''}<div class="security-note"><strong>Keep your password safe.</strong> EncoVault does not store or recover it. If lost, encrypted files cannot be opened.</div></div>
     <div class="muted-caption">Files are processed locally with browser cryptography. Nothing is sent to a server.</div>`;
   selectedFiles=[];
   renderFileList();
-  content.querySelectorAll("[data-file-mode]").forEach(button=>button.addEventListener("click",()=>{useUI.setState({mode: button.dataset.fileMode});renderFileTool();}));
+  content.querySelectorAll("[data-file-mode]").forEach(button=>button.addEventListener("click",()=>{useUI().setState({mode: button.dataset.fileMode});renderFileTool();}));
   document.getElementById("browse-files").onclick=()=>document.getElementById("file-picker").click();
   document.getElementById("file-picker").onchange=event=>setFiles(event.target.files);
   if(locking){document.getElementById("browse-folder").onclick=()=>document.getElementById("folder-picker").click();document.getElementById("folder-picker").onchange=event=>setFiles(event.target.files);}
@@ -168,7 +155,7 @@ function compressionInfoMarkup(method){
 
 function renderCompressionTool(action,method="gzip",preserveSelection=false){
   const compressing=action==="compress";
-  useUI.setState({mode: "compress"});compressionAction=action;compressionMethod=method;
+  useUI().setState({mode: "compress"});compressionAction=action;compressionMethod=method;
   crumb.textContent="Compression";content.className="content";setActiveNav();
   content.innerHTML=`<div class="page-head"><div class="page-head-text"><div class="eyebrow">COMPRESSION TOOL</div><h1 class="page-title">${compressing?"Compression":"Decompression"}</h1><p class="page-subtitle">${compressing?"Reduce file size locally into one .zip archive.":"Restore the original files inside a .zip archive."}</p></div><div class="mode-switch"><button class="mode-choice ${compressing?"selected":""}" data-compression-mode="compress">Compress</button><button class="mode-choice ${!compressing?"selected":""}" data-compression-mode="decompress">Decompress</button></div></div>
   <div class="file-workspace file-split"><section class="work-card">
@@ -284,7 +271,7 @@ function renderFileList(){
     const total=selectedFiles.reduce((sum,file)=>sum+file.size,0);
     const folders=new Set(selectedFiles.map(file=>(file.webkitRelativePath||"").split("/")[0]).filter(Boolean));
     const collection=selectedFiles.length>1||folders.size>0;
-    summary.innerHTML=`<div class="selection-summary"><span class="selection-icon">${collection?"▣":"▤"}</span><span><strong>${selectedFiles.length} ${selectedFiles.length===1?"file":"files"} selected</strong><small>${formatSize(total)} total${folders.size?` · ${folders.size} folder`+(folders.size===1?"":"s"):""}</small></span><span class="selection-output">${collection?"One .enco archive":"One .enco file"}</span></div>`;
+    summary.innerHTML=`<div class="selection-summary"><span class="selection-icon">${collection?"▣":"▤"}</span><span><strong>${selectedFiles.length} ${selectedFiles.length===1?"file":"files"} selected</strong><small>${formatSize(total)} total${folders.size?` · ${folders.size} folder`+(folders.size===1?"":"s"):""}</small></span><span class="selection-output">${collection?"One .encovault archive":"One .encovault file"}</span></div>`;
   }
 }
 
@@ -317,34 +304,15 @@ async function updateCompressionPreview(){
 
 function concatBytes(...arrays){const result=new Uint8Array(arrays.reduce((sum,array)=>sum+array.length,0));let offset=0;for(const array of arrays){result.set(array,offset);offset+=array.length;}return result;}
 
-navButtons.forEach(button=>button.addEventListener("click",()=>{if(button.hasAttribute("data-mode")){useUI.setState({mode: button.getAttribute("data-mode")});renderFileTool();}else if(button.hasAttribute("data-learn"))renderLearn();else renderLab(button.getAttribute("data-lab"));}));
-document.getElementById("home-link").addEventListener("click",event=>{event.preventDefault();useUI.setState({mode: "lock"});renderFileTool();});
-
-// Theme toggle
-(function(){
-  const btn = document.getElementById("theme-toggle");
-  const sun = document.getElementById("theme-icon-sun");
-  const moon = document.getElementById("theme-icon-moon");
-  if (!btn) return;
-  const saved = localStorage.getItem("theme");
-  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const apply = (dark) => {
-    document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
-    sun.style.display = dark ? "block" : "none";
-    moon.style.display = dark ? "none" : "block";
-    localStorage.setItem("theme", dark ? "dark" : "light");
-  };
-  apply(saved ? saved === "dark" : prefersDark);
-  btn.addEventListener("click", () => {
-    const isDark = document.documentElement.getAttribute("data-theme") === "dark";
-    apply(!isDark);
-  });
-})();
-
-renderFileTool();
-
-// Export init function for main.js
 function initApp() {
-  // The app initializes itself when the module loads
-  // But we export this for explicit control
+  if (content) return;
+  document.documentElement.removeAttribute("data-theme");
+  localStorage.removeItem("theme");
+  ({content, crumb, navButtons, selectedFiles, activeLab} = initDOMElements());
+  navButtons.forEach(button=>button.addEventListener("click",()=>{if(button.hasAttribute("data-mode")){useUI().setState({mode: button.getAttribute("data-mode")});renderFileTool();}else if(button.hasAttribute("data-learn"))renderLearn();else renderLab(button.getAttribute("data-lab"));}));
+  document.getElementById("home-link").addEventListener("click",event=>{event.preventDefault();useUI().setState({mode: "lock"});renderFileTool();});
+  renderFileTool();
 }
+
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initApp, {once:true});
+else initApp();

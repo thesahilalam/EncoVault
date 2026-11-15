@@ -1,12 +1,12 @@
 # EncoVault
 
-EncoVault is a local learning and demo tool for **Data Encryption and Compression**. It combines a small FastAPI backend with a plain HTML, Tailwind CDN, and JavaScript frontend. No account or external service is needed.
+EncoVault is a local learning and demo tool for **Data Encryption and Compression**. It combines a small FastAPI backend with a plain HTML, CSS, and JavaScript frontend. No account or external service is needed.
 
 ## What it does
 
 - Learn and run Caesar, AES, RSA, RLE, Huffman, and LZW.
 - Encrypt only, compress only, or run both in either order.
-- Lock and unlock arbitrary files locally with password-derived AES-256-GCM; optional gzip compression runs before encryption when it reduces size. A folder or multi-file selection becomes one `.enco` archive.
+- Lock and unlock arbitrary files locally with password-derived AES-GCM; optional gzip compression runs before encryption when it reduces size. A folder or multi-file selection becomes one `.encovault` archive.
 - Compress and decompress arbitrary files locally with gzip and show measured before/after size. Image files can optionally be re-encoded to WebP at a chosen quality; video uses a lossless gzip attempt.
 - Process pasted text or load a text file (up to 500 KB) in the browser.
 - Compare input/output size and elapsed processing time, inspect algorithm metadata, and download the result.
@@ -76,7 +76,8 @@ Other endpoints are `POST /api/encrypt/decrypt`, `POST /api/compress/decompress`
 ## Algorithm notes for a viva
 
 - **Caesar:** shifts English A–Z letters; educational only and trivially brute-forced.
-- **AES:** AES-GCM with a random nonce and authentication tag. The response includes the key material needed to decrypt. Keep it private. If a Base64 key is supplied, it must decode to 16, 24, or 32 bytes.
+- **AES (API lab):** AES-GCM with a random nonce and authentication tag. The response includes the key material needed to decrypt. Keep it private. If a Base64 key is supplied, it must decode to 16, 24, or 32 bytes.
+- **File vault:** AES-GCM derives its key from the vault password using PBKDF2. The default profile is AES-256 with SHA-256 and 600,000 PBKDF2 rounds; advanced options can choose a different supported AES key size, hash, and round count.
 - **RSA:** RSA-OAEP with a 2048-bit key pair, chunked for larger text. This direct-RSA demonstration is slower and less suitable for large data than hybrid encryption. A generated private key is returned for the demo.
 - **RLE:** readable `count:hex-codepoint;` runs (for example, `3:41;` represents `AAA`). This unambiguous text representation handles Unicode, delimiters, and line breaks.
 - **Huffman:** output is a readable bit string; its code table and padding count are returned as metadata and required to decompress.

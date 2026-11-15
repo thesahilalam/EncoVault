@@ -1,5 +1,7 @@
 
 const CRC32_TABLE=(()=>{const table=new Uint32Array(256);for(let i=0;i<256;i++){let c=i;for(let j=0;j<8;j++)c=c&1?(0xEDB88320^(c>>>1)):(c>>>1);table[i]=c>>>0;}return table;})();
+const MAX_ZIP_FILES=10000;
+const MAX_ZIP_UNCOMPRESSED=500*1024*1024;
 function calculateCRC32(data){let crc=0xFFFFFFFF;for(let i=0;i<data.length;i++)crc=(crc>>>8)^CRC32_TABLE[(crc^data[i])&0xFF];return (crc^0xFFFFFFFF)>>>0;}
 async function deflateBytes(bytes){
   if(typeof CompressionStream==="undefined")return null;
@@ -16,13 +18,18 @@ function dosDateTime(date=new Date()){
   return {time:time&0xFFFF,day:day&0xFFFF};
 }
 async function createZipArchive(items,onProgress=()=>{}){
+  if(!items.length)throw new Error("Choose at least one file.");
+  if(items.length>MAX_ZIP_FILES)throw new Error("This ZIP tool supports up to 10,000 files at once.");
   const encoder=new TextEncoder();const chunks=[];const central=[];let offset=0;const stamp=dosDateTime();
+  let totalUncompressed=0;
   for(let i=0;i<items.length;i++){
     const item=items[i];
     const path=(item.path||item.name).replace(/\\/g,"/");
     if(!path||path.split("/").some(part=>!part||part==="."||part===".."))throw new Error("A selected file has an unsafe path.");
     const nameBytes=encoder.encode(path);
     const raw=item.bytes||new Uint8Array(await item.file.arrayBuffer());
+    totalUncompressed+=raw.length;
+    if(totalUncompressed>MAX_ZIP_UNCOMPRESSED)throw new Error("This ZIP tool supports selections up to 500 MB total.");
     let method=0,payload=raw;
     const deflated=await deflateBytes(raw);
     if(deflated&&deflated.length<raw.length){method=8;payload=deflated;}
@@ -63,12 +70,15 @@ async function readZip(bytes){
   }
   if(eocd<0)throw new Error("This file is not a valid .zip archive.");
   const count=view.getUint16(eocd+10,true);
+  if(count>MAX_ZIP_FILES)throw new Error("This .zip archive contains too many files.");
   let cursor=view.getUint32(eocd+16,true);
-  const decoder=new TextDecoder();const entries=[];
+  const decoder=new TextDecoder();const entries=[];let totalUncompressed=0;
   for(let i=0;i<count;i++){
     if(cursor+46>bytes.length||view.getUint32(cursor,true)!==0x02014b50)throw new Error("This .zip archive uses an unsupported layout.");
     const method=view.getUint16(cursor+10,true);
+    const expectedCrc=view.getUint32(cursor+16,true);
     const compSize=view.getUint32(cursor+20,true);
+    const rawSize=view.getUint32(cursor+24,true);
     const nameLen=view.getUint16(cursor+28,true);
     const extraLen=view.getUint16(cursor+30,true);
     const commentLen=view.getUint16(cursor+32,true);
@@ -82,6 +92,8 @@ async function readZip(bytes){
     const lExtraLen=view.getUint16(localOffset+28,true);
     const dataStart=localOffset+30+lNameLen+lExtraLen;
     if(dataStart+compSize>bytes.length)throw new Error("This .zip archive is damaged.");
+    totalUncompressed+=rawSize;
+    if(totalUncompressed>MAX_ZIP_UNCOMPRESSED)throw new Error("This .zip archive expands beyond the 500 MB safety limit.");
     const payload=bytes.slice(dataStart,dataStart+compSize);
     let data;
     if(method===0)data=payload;
@@ -91,6 +103,7 @@ async function readZip(bytes){
       const input=typeof source.stream==="function"?source.stream():new Response(payload).body;
       data=new Uint8Array(await new Response(input.pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer());
     }else throw new Error("This .zip archive uses an unsupported compression method.");
+    if(data.length!==rawSize||calculateCRC32(data)!==expectedCrc)throw new Error("This .zip archive failed its integrity check.");
     entries.push({path:name,blob:new Blob([data])});
   }
   return entries;

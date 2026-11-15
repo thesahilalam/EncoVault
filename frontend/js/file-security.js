@@ -20,12 +20,12 @@ async function lockFiles(){
     const encrypted=await encryptSelection(selectedFiles,password,{iterations,hash,keyBits,compression:compress,keyfile:kmKeyfile,threshold:kmThreshold,unlockTime},(current,total,file)=>showProgress(`Adding ${file.name}`,current,total));
     showProgress("Encrypting archive",selectedFiles.length,selectedFiles.length);
     const firstPath=archivePath(selectedFiles[0]);const root=encrypted.isArchive?(firstPath.split("/")[0]||"EncoVault-archive"):firstPath.replace(/\.[^.]+$/,"");
-    const outputName=`${root.replace(/[^a-z0-9._-]/gi,"-")||"EncoVault-archive"}.enco`;downloadBlob(encrypted.blob,outputName);
+    const outputName=`${root.replace(/[^a-z0-9._-]/gi,"-")||"EncoVault-archive"}.encovault`;downloadBlob(encrypted.blob,outputName);
     if(encrypted.keyFile){downloadBlob(new Blob([encrypted.keyFile]),root+".key");}
     const source=encrypted.isArchive?`${selectedFiles.length} files · one protected archive`:selectedFiles[0].name;
     showResults("Encrypted archive created",[{name:outputName,source,detail:encrypted.compressed?"gzip compressed before encryption":"encrypted without compression"}],"downloaded");
     resetFileTool();
-  }catch(error){showMessage(error.message||"Could not encrypt the selected files.",true);}finally{button.disabled=selectedFiles.length===0;button.textContent="Lock selection · Create .enco";}
+  }catch(error){showMessage(error.message||"Could not encrypt the selected files.",true);}finally{button.disabled=selectedFiles.length===0;button.textContent="Lock selection · Create .encovault";}
 }
 
 

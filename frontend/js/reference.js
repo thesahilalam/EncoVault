@@ -241,7 +241,7 @@ function renderLabTool(category, name){
               const pt = await crypto.subtle.decrypt({name:"AES-GCM", iv: encIv, tagLength: 128}, encKey, encBytes);
               out.innerHTML += `<br><b style="color:#0f9d6e;">DECRYPTED OK:</b> "${new TextDecoder().decode(pt)}" ${tampered ? "· unusual — the flip happened to land safely" : "· nothing was modified"}`;
           } catch (error) {
-              out.innerHTML += `<br><b style="color:#d93025;">REJECTED — authentication tag mismatch.</b><br>GCM proved the data changed. This is how EncoVault blocks silently corrupted or maliciously edited .enco files.`;
+              out.innerHTML += `<br><b style="color:#d93025;">REJECTED — authentication tag mismatch.</b><br>GCM proved the data changed. This is how EncoVault blocks silently corrupted or maliciously edited .encovault files.`;
           }
       };
   } else if(name==="RSA step-by-step"){
