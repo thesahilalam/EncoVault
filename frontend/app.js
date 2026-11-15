@@ -7,6 +7,7 @@ import * as FileSecurity from "./js/file-security.js";
 import * as Compress from "./js/compress.js";
 import * as AES from "./js/aes.js";
 import * as Reference from "./js/reference.js";
+import { useUI, useFiles, useCrypto } from "./js/store.js";
 
 // Make AES and API available globally for backward compatibility (reference.js uses window.AES)
 if (typeof window !== "undefined") {
@@ -17,12 +18,14 @@ if (typeof window !== "undefined") {
 const content = document.getElementById("content");
 const crumb = document.getElementById("crumb");
 const navButtons = [...document.querySelectorAll("[data-mode], [data-lab], [data-learn]")];
-let mode = "lock";
+// mode is now in store.ui.mode
 let selectedFiles = [];
 let activeLab = "classical";
 
 function setActiveNav(){
-  navButtons.forEach(button=>button.classList.toggle("active",(button.dataset.mode==="lock"&&(mode==="lock"||mode==="unlock"))||button.dataset.mode===mode||button.dataset.lab===activeLab&&mode==="lab"||button.hasAttribute("data-learn")&&mode==="learn"));
+  function getMode() { return useUI.getState().mode; }
+  function getActiveLab() { return useUI.getState().activeLab; }
+  navButtons.forEach(button=>button.classList.toggle("active",(button.dataset.mode==="lock"&&(getMode()==="lock"||getMode()==="unlock"))||button.dataset.mode===getMode()||button.dataset.lab===getActiveLab()&&getMode()==="lab"||button.hasAttribute("data-learn")&&getMode()==="learn"));
 }
 
 
@@ -62,9 +65,9 @@ function updateAnalyzer(password){
 }
 
 function renderFileTool(){
-  if(mode==="compress"){renderCompressionTool("compress");return;}
+  if(getMode()==="compress"){renderCompressionTool("compress");return;}
   content.className="content";
-  const locking=mode==="lock";
+  const locking=getMode()==="lock";
   crumb.textContent="Encryption";
   content.innerHTML=`<div class="page-head"><div class="page-head-text"><div class="eyebrow">PRIVATE FILE PROTECTION</div>
     <h1 class="page-title">${locking?"Lock your files.":"Unlock your files."}</h1>
@@ -96,7 +99,7 @@ function renderFileTool(){
     <div class="muted-caption">Files are processed locally with browser cryptography. Nothing is sent to a server.</div>`;
   selectedFiles=[];
   renderFileList();
-  content.querySelectorAll("[data-file-mode]").forEach(button=>button.addEventListener("click",()=>{mode=button.dataset.fileMode;renderFileTool();}));
+  content.querySelectorAll("[data-file-mode]").forEach(button=>button.addEventListener("click",()=>{useUI.setState({mode: button.dataset.fileMode});renderFileTool();}));
   document.getElementById("browse-files").onclick=()=>document.getElementById("file-picker").click();
   document.getElementById("file-picker").onchange=event=>setFiles(event.target.files);
   if(locking){document.getElementById("browse-folder").onclick=()=>document.getElementById("folder-picker").click();document.getElementById("folder-picker").onchange=event=>setFiles(event.target.files);}
@@ -157,7 +160,7 @@ function compressionInfoMarkup(method){
 
 function renderCompressionTool(action,method="gzip",preserveSelection=false){
   const compressing=action==="compress";
-  mode="compress";compressionAction=action;compressionMethod=method;
+  useUI.setState({mode: "compress"});compressionAction=action;compressionMethod=method;
   crumb.textContent="Compression";content.className="content";setActiveNav();
   content.innerHTML=`<div class="page-head"><div class="page-head-text"><div class="eyebrow">COMPRESSION TOOL</div><h1 class="page-title">${compressing?"Compression":"Decompression"}</h1><p class="page-subtitle">${compressing?"Reduce file size locally into one .zip archive.":"Restore the original files inside a .zip archive."}</p></div><div class="mode-switch"><button class="mode-choice ${compressing?"selected":""}" data-compression-mode="compress">Compress</button><button class="mode-choice ${!compressing?"selected":""}" data-compression-mode="decompress">Decompress</button></div></div>
   <div class="file-workspace file-split"><section class="work-card">
@@ -279,7 +282,7 @@ function renderFileList(){
 
 async function updateCompressionPreview(){
   const target=document.getElementById("compression-preview");
-  if(!target||mode!=="compress"||compressionAction!=="compress"||compressionMethod!=="gzip")return;
+  if(!target||getMode()!=="compress"||true||compressionMethod!=="gzip")return;
   const token=++compressionPreviewToken;
   if(!selectedFiles.length){target.innerHTML="";return;}
   if(typeof CompressionStream==="undefined"&&!(compressionMode==="lossy"&&selectedFiles.every(isImageFile))){target.innerHTML='<div class="inline-error">This browser cannot calculate a gzip preview.</div>';return;}
@@ -306,8 +309,8 @@ async function updateCompressionPreview(){
 
 function concatBytes(...arrays){const result=new Uint8Array(arrays.reduce((sum,array)=>sum+array.length,0));let offset=0;for(const array of arrays){result.set(array,offset);offset+=array.length;}return result;}
 
-navButtons.forEach(button=>button.addEventListener("click",()=>{if(button.hasAttribute("data-mode")){mode=button.getAttribute("data-mode");renderFileTool();}else if(button.hasAttribute("data-learn"))renderLearn();else renderLab(button.getAttribute("data-lab"));}));
-document.getElementById("home-link").addEventListener("click",event=>{event.preventDefault();mode="lock";renderFileTool();});
+navButtons.forEach(button=>button.addEventListener("click",()=>{if(button.hasAttribute("data-mode")){useUI.setState({mode: button.getAttribute("data-mode")});renderFileTool();}else if(button.hasAttribute("data-learn"))renderLearn();else renderLab(button.getAttribute("data-lab"));}));
+document.getElementById("home-link").addEventListener("click",event=>{event.preventDefault();useUI.setState({mode: "lock"});renderFileTool();});
 
 // Theme toggle
 (function(){

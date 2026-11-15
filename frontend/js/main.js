@@ -9,11 +9,13 @@ import * as FileSecurity from "./file-security.js";
 import * as Compress from "./compress.js";
 import * as AES from "./aes.js";
 import * as Reference from "./reference.js";
+import * as Store from "./store.js";
 import { initApp } from "../app.js";
 
 // Make AES and API available globally for backward compatibility
 // (reference.js and some legacy code uses window.AES and window.API)
 if (typeof window !== "undefined") {
+  window.Store = Store;
   window.AES = AES.AES;
   window.API = API.API;
   window.UI = UI;
