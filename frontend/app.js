@@ -15,12 +15,17 @@ if (typeof window !== "undefined") {
   window.API = API.API;
 }
 
-const content = document.getElementById("content");
-const crumb = document.getElementById("crumb");
-const navButtons = [...document.querySelectorAll("[data-mode], [data-lab], [data-learn]")];
-// mode is now in store.ui.mode
-let selectedFiles = [];
-let activeLab = "classical";
+function initDOMElements() {
+  const content = document.getElementById("content");
+  const crumb = document.getElementById("crumb");
+  const navButtons = [...document.querySelectorAll("[data-mode], [data-lab], [data-learn]")];
+  // mode is now in store.ui.mode
+  let selectedFiles = [];
+  let activeLab = "classical";
+  return { content, crumb, navButtons, selectedFiles, activeLab };
+}
+
+let content, crumb, navButtons, selectedFiles, activeLab;
 
 function setActiveNav(){
   function getMode() { return useUI.getState().mode; }
