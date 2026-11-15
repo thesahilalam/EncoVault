@@ -2,6 +2,22 @@
 // Globals from: api.js, ui.js, zip.js, archive.js, file-security.js,
 // compress.js, aes.js, store.js, reference.js
 
+console.log("[app.js] load started");
+
+// Emergency debug: check if DOM is ready
+if (document.readyState === "loading") {
+  console.log("[app.js] DOM not ready yet, waiting...");
+  document.addEventListener("DOMContentLoaded", () => {
+    console.log("[app.js] DOM ready, initializing...");
+    try { initApp(); console.log("[app.js] initApp() success"); }
+    catch(e) { console.error("[app.js] initApp error:", e); }
+  });
+} else {
+  console.log("[app.js] DOM already ready");
+  try { initApp(); console.log("[app.js] initApp() success"); }
+  catch(e) { console.error("[app.js] initApp error:", e); }
+}
+
 function initDOMElements() {
   const content = document.getElementById("content");
   const crumb = document.getElementById("crumb");
