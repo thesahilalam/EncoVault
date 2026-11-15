@@ -140,10 +140,10 @@ const store = {
 };
 
 // ============ EXPORTS ============
-export const useStore = () => store;
-export const useFiles = () => filesSlice;
-export const useUI = () => uiSlice;
-export const useCrypto = () => cryptoSlice;
-export const useSettings = () => settingsSlice;
+const useStore = () => store;
+const useFiles = () => filesSlice;
+const useUI = () => uiSlice;
+const useCrypto = () => cryptoSlice;
+const useSettings = () => settingsSlice;
 
-export default store;
+window.Store = store;

@@ -1,4 +1,4 @@
-export function showMessage(message,error=false){
+function showMessage(message,error=false){
   const target=document.getElementById("operation-message");
   if(!target)return;
   target.innerHTML=`<div class="${error?"inline-error":"security-note"}">${escapeHTML(message)}</div>`;

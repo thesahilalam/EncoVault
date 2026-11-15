@@ -1,19 +1,6 @@
-// Entry point - imports all modules and initializes the app
-import * as API from "./js/api.js";
-import * as UI from "./js/ui.js";
-import * as Zip from "./js/zip.js";
-import * as Archive from "./js/archive.js";
-import * as FileSecurity from "./js/file-security.js";
-import * as Compress from "./js/compress.js";
-import * as AES from "./js/aes.js";
-import * as Reference from "./js/reference.js";
-import { useUI, useFiles, useCrypto } from "./js/store.js";
-
-// Make AES and API available globally for backward compatibility (reference.js uses window.AES)
-if (typeof window !== "undefined") {
-  window.AES = AES.AES;
-  window.API = API.API;
-}
+// app.js — router + boot (classic script, loaded last)
+// Globals from: api.js, ui.js, zip.js, archive.js, file-security.js,
+// compress.js, aes.js, store.js, reference.js
 
 function initDOMElements() {
   const content = document.getElementById("content");
@@ -341,7 +328,7 @@ document.getElementById("home-link").addEventListener("click",event=>{event.prev
 renderFileTool();
 
 // Export init function for main.js
-export function initApp() {
+function initApp() {
   // The app initializes itself when the module loads
   // But we export this for explicit control
 }

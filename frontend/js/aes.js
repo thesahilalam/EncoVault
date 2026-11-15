@@ -2,8 +2,7 @@
 // Lets the ECB vs GCM image demo run client-side on Vercel (no backend).
 // NOT for protecting real data — EncoVault file locking uses WebCrypto AES-GCM.
 
-// ES Module
-export const AES = (() => {
+const AES = (() => {
   // Build the FIPS-197 S-box at load time: GF(2^8) inverse + affine transform.
   const exp = new Uint8Array(256), log = new Uint8Array(256);
   let x = 1;

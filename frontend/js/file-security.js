@@ -1,5 +1,5 @@
 // File Security: Lock and Unlock operations
-export async function lockFiles(){
+async function lockFiles(){
   const password=document.getElementById("password").value;const confirm=document.getElementById("confirm-password").value;
   if(password.length<4){showMessage("Use a password with at least 4 characters.",true);return;}
   if(password!==confirm){showMessage("Passwords do not match.",true);return;}
