@@ -6,7 +6,7 @@
 :root {
   /* Palette (Light) */
   --bg: #f4f6fa;
-  --surface: var(--surface)fff;
+  --surface: #ffffff;
   --surface-2: #f8fafc;
   --surface-3: #f1f5f9;
   --ink: #0f172a;
@@ -29,7 +29,7 @@
   --danger-line: #f7d4d4;
 
   --amber: #d97706;
-  --amber-soft: var(--surface)beb;
+  --amber-soft: #fffbeb;
 
   /* Shape & depth */
   --radius: 16px;
