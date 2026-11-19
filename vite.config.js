@@ -4,9 +4,10 @@ import { fileURLToPath } from 'node:url';
 import { copyFileSync, cpSync } from 'node:fs';
 
 const projectRoot = fileURLToPath(new URL('.', import.meta.url));
+const isProduction = process.env.NODE_ENV === 'production';
 
 export default defineConfig({
-  base: '/EncoVault/',  // GitHub Pages subpath
+  base: isProduction ? '/EncoVault/' : '/',  // Only use base path in production
   root: 'frontend',
   build: {
     outDir: '../dist',
