@@ -1,19 +1,15 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
+import { fileURLToPath } from 'node:url';
 import { copyFileSync, cpSync } from 'node:fs';
+
+const projectRoot = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig({
   root: 'frontend',
   // The UI intentionally uses classic scripts so the small teaching modules
   // can share browser globals without a framework or bundler runtime.
   // Vite leaves those scripts untouched, therefore copy them into dist.
-  plugins: [{
-    name: 'copy-classic-ui-scripts',
-    closeBundle() {
-      cpSync(resolve(__dirname, 'frontend/js'), resolve(__dirname, 'dist/js'), { recursive: true });
-      copyFileSync(resolve(__dirname, 'frontend/app.js'), resolve(__dirname, 'dist/app.js'));
-    },
-  }],
   build: {
     outDir: '../dist',
     emptyOutDir: true,
@@ -29,7 +25,10 @@ export default defineConfig({
     },
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'frontend/index.html'),
+        main: resolve(projectRoot, 'frontend/home.html'),
+        encryptionDecryption: resolve(projectRoot, 'frontend/encryption-decryption.html'),
+        compression: resolve(projectRoot, 'frontend/compression.html'),
+        simulation: resolve(projectRoot, 'frontend/simulation.html'),
       },
       output: {
         entryFileNames: 'assets/[name]-[hash].js',
@@ -47,9 +46,26 @@ export default defineConfig({
       '/api': 'http://127.0.0.1:8000',
     },
   },
+  plugins: [{
+    name: 'copy-classic-ui-scripts',
+    closeBundle() {
+      cpSync(resolve(projectRoot, 'frontend/js'), resolve(projectRoot, 'dist/js'), { recursive: true });
+      copyFileSync(resolve(projectRoot, 'frontend/app.js'), resolve(projectRoot, 'dist/app.js'));
+    },
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (req.url === '/' || req.url === '/index.html') {
+          res.writeHead(302, { Location: '/home.html' });
+          res.end();
+          return;
+        }
+        next();
+      });
+    },
+  }],
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'frontend/js'),
+      '@': resolve(projectRoot, 'frontend/js'),
     },
   },
 });

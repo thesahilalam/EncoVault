@@ -42,3 +42,6 @@ async function unlockFiles(){
     resetFileTool();
   }catch(error){showMessage(error.message||"Could not unlock the selected files.",true);}finally{button.disabled=selectedFiles.length===0;button.textContent="Unlock selected files";}
 }
+
+window.lockFiles = lockFiles;
+window.unlockFiles = unlockFiles;

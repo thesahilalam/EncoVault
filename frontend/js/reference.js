@@ -28,8 +28,8 @@ function renderLearn(selected=0,openBranch=null){
   if(!Number.isInteger(selected)||selected<0||selected>=keyConcepts.length)selected=0;
   const branch=openBranch===null?Math.max(0,referenceTree.findIndex(branch=>branch.items.includes(selected))):openBranch;
   const currentBranch=referenceTree[branch]||referenceTree[0];
-  mode="learn";crumb.textContent="Security reference";content.className="content";setActiveNav();
-  content.innerHTML=`<div class="page-head"><div class="page-head-text"><div class="eyebrow">SECURITY, MADE CLEAR</div><h1 class="page-title">Security reference</h1><p class="page-subtitle">Follow the branches from the big idea to the details. Open a topic to see its explanation and the next related step.</p></div></div>
+  mode="learn";const crumbEl=document.getElementById("crumb");if(crumbEl)crumbEl.textContent="Security reference";content.className="content";setActiveNav();
+  content.innerHTML=`<div class="page-head"><div class="page-head-text"><h1 class="page-title">Security reference</h1><p class="page-subtitle">Follow the branches from the big idea to the details. Open a topic to see its explanation and the next related step.</p></div></div>
   <div class="reference-tree-layout"><nav class="reference-tree" aria-label="Security reference tree"><div class="tree-root"><span class="tree-root-dot">E</span><div><strong>EncoVault reference</strong><small>Choose a branch to explore</small></div></div>${referenceTree.map((branchItem,index)=>`<section class="tree-branch ${index===branch?"open":""}"><button class="branch-toggle" data-ref-branch="${index}" aria-expanded="${index===branch}"><span class="branch-arrow">${index===branch?"\u2304":"\u203a"}</span><span><strong>${branchItem.title}</strong><small>${branchItem.hint} \u00b7 ${branchItem.items.length} topics</small></span></button>${index===branch?`<div class="tree-leaves">${branchItem.items.map((topicIndex,position)=>{const topic=keyConcepts[topicIndex];return `<button class="tree-leaf ${topicIndex===selected?"selected":""}" data-ref-topic="${topicIndex}"><span class="leaf-line"></span><span class="leaf-number">${String(position+1).padStart(2,"0")}</span><span><strong>${topic[1]}</strong><small>${topic[0]}</small></span><span class="leaf-mark">${topicIndex===selected?"\u25cf":"\u25cb"}</span></button>`;}).join("")}</div>`:""}</section>`).join("")}</nav><article class="concept-detail reference-detail" id="concept-detail"></article></div>`;
   content.querySelectorAll("[data-ref-branch]").forEach(button=>button.addEventListener("click",()=>{const next=Number(button.dataset.refBranch);const first=referenceTree[next].items[0];renderLearn(keyConcepts[selected]&&referenceTree[next].items.includes(selected)?selected:first,next);}));
   content.querySelectorAll("[data-ref-topic]").forEach(button=>button.addEventListener("click",()=>renderLearn(Number(button.dataset.refTopic),branch)));
@@ -48,9 +48,8 @@ function renderLab(category){
     network: {label: "Network Security Lab", crumb: "Network Security", summary: "TLS handshake, certificate chains, firewall rules, and MFA — all simulated locally.", tools: ["TLS handshake walk-through", "Certificate chain viewer", "Firewall rule builder", "MFA & password strength"]}
   };
   if(!labConfig[category]) category = "classical";
-  mode="lab";activeLab=category;crumb.textContent=labConfig[category].crumb;content.className="content";setActiveNav();
-  content.innerHTML=`<div class="page-head"><div class="page-head-text"><div class="eyebrow">LABORATORY</div>
-    <h1 class="page-title">${labConfig[category].label}</h1><p class="page-subtitle">${labConfig[category].summary}</p></div></div>
+  mode="lab";activeLab=category;const crumbEl=document.getElementById("crumb");if(crumbEl)crumbEl.textContent=labConfig[category].crumb;content.className="content";setActiveNav();
+  content.innerHTML=`<div class="page-head"><div class="page-head-text"><h1 class="page-title">${labConfig[category].label}</h1><p class="page-subtitle">${labConfig[category].summary}</p></div></div>
     <div class="lab-tabs">${Object.entries(labConfig).map(([key,c])=>`<button class="lab-tab ${key===category?"active":""}" data-category="${key}">${c.crumb}</button>`).join("")}</div>
     <section class="lab-workspace" id="lab-workspace"></section>`;
   content.querySelectorAll("[data-category]").forEach(b=>b.addEventListener("click",()=>renderLab(b.dataset.category)));
@@ -383,4 +382,44 @@ function renderLabTool(category, name){
       target.innerHTML=`<div class="work-card"><h2>${name}</h2><p>Interactive tool active.</p></div>`;
   }
 }
+
+function addCopyButton(outputId) {
+  const output = document.getElementById(outputId);
+  if (!output) return;
+  output.classList.add("has-text");
+  const btn = document.createElement("button");
+  btn.className = "copy-btn";
+  btn.innerHTML = "📋 Copy";
+  btn.style.cssText = "position:absolute;top:8px;right:8px;padding:4px 10px;font-size:12px;background:var(--surface);border:1px solid var(--line);border-radius:6px;cursor:pointer;opacity:0;transition:opacity 0.2s;box-shadow:var(--shadow-sm);";
+  btn.onmouseenter = () => btn.style.opacity = "1";
+  btn.onmouseleave = () => btn.style.opacity = "0.4";
+  btn.onclick = async () => {
+    const text = output.textContent.trim();
+    try {
+      if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(text);
+      else {
+        const temporary = document.createElement("textarea");
+        temporary.value = text;
+        temporary.style.position = "fixed";
+        temporary.style.opacity = "0";
+        document.body.appendChild(temporary);
+        temporary.select();
+        const copied = document.execCommand("copy");
+        temporary.remove();
+        if (!copied) throw new Error("Clipboard unavailable");
+      }
+      btn.innerHTML = "✅ Copied!";
+      setTimeout(() => btn.innerHTML = "📋 Copy", 1500);
+    } catch (_) {
+      btn.innerHTML = "Copy unavailable";
+      setTimeout(() => btn.innerHTML = "📋 Copy", 1500);
+    }
+  };
+  output.style.position = "relative";
+  output.appendChild(btn);
+}
+
+window.renderLearn = renderLearn;
+window.renderLab = renderLab;
+window.renderLabTool = renderLabTool;
 

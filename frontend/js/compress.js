@@ -26,7 +26,6 @@ async function compressFiles(){
   finally{button.disabled=selectedFiles.length===0;}
 }
 
-
 async function decompressFiles(){
   const button=document.getElementById("run-file-action");button.disabled=true;clearMessage();const results=[];
   try{
@@ -44,18 +43,15 @@ async function decompressFiles(){
           await writeEntriesToFolder(parent,entries);
           handled=true;
           results.push({name:root+"/",source:file.name,detail:"saved into folder"});
-        }catch(e){ if(e.name!=="AbortError") handled=false; else {showMessage("Folder selection cancelled.",true); return;} }
+        }catch(e){ if(e.name==="AbortError") { showMessage("Folder selection cancelled.",true); return; } }
       }
       if(!handled){
-        const bundledItems=[];
+        if(entries.length > 1) throw new Error("Choose a destination folder to extract this archive.");
         for(const entry of entries){
-          const bytes=new Uint8Array(await entry.blob.arrayBuffer());
-          bundledItems.push({path:root+"/"+entry.path,bytes});
+          const safeName=entry.path.split("/").pop();
+          downloadBlob(entry.blob,safeName);
+          results.push({name:safeName,source:file.name,detail:"extracted"});
         }
-        const bundled=await createZipArchive(bundledItems);
-        const outputName=root+".zip";
-        downloadBlob(bundled,outputName);
-        results.push({name:outputName,source:file.name,detail:`${entries.length} files · one archive`});
       }
     }
     showResults("Decompression complete",results,"restored");
@@ -63,4 +59,7 @@ async function decompressFiles(){
   }catch(error){showMessage(error.message||"Could not decompress this file. Check that it is a valid .zip file.",true);}
   finally{button.disabled=selectedFiles.length===0;}
 }
+
+window.compressFiles = compressFiles;
+window.decompressFiles = decompressFiles;
 

@@ -13,6 +13,7 @@
     "bump:major": "node scripts/bump-version.js major"
   },
   "devDependencies": {
+    "jsdom": "^31.0.1",
     "terser": "^5.51.2",
     "vite": "^8.3.8"
   },

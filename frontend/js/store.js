@@ -1,11 +1,9 @@
-/**
- * EncoVault Store — Lightweight Reactive State Management
- * Zero dependencies, ~150 lines. Provides:
- * - Reactive state with subscribe/notify pattern
- * - Immutable updates with history (undo/redo ready)
- * - DevTools logging
- * - Module-scoped slices (files, ui, crypto, settings)
- */
+// EncoVault Store — Lightweight Reactive State Management
+// Zero dependencies, ~150 lines. Provides:
+// - Reactive state with subscribe/notify pattern
+// - Immutable updates with history (undo/redo ready)
+// - DevTools logging
+// - Module-scoped slices (files, ui, crypto, settings)
 
 // ============ CORE STORE ============
 function createStore(initialState = {}) {
@@ -42,8 +40,10 @@ function createStore(initialState = {}) {
     isBatch = true;
     try {
       updates.forEach(({ partial, actionName }) => {
+        const prevState = { ...state };
         state = { ...state, ...partial };
-        history.push({ prevState: { ...state }, actionName: actionName || "batch", timestamp: Date.now() });
+        history.push({ prevState, actionName: actionName || "batch", timestamp: Date.now() });
+        if (history.length > maxHistory) history.shift();
       });
     } finally {
       isBatch = false;
@@ -86,11 +86,11 @@ const filesSlice = createStore({
 
 // UI slice
 const uiSlice = createStore({
-  mode: "lock",           // lock | unlock | compress | decompress
-  activeLab: "classical",
+  mode: "home",           // home, crypto, compress, simulation, lab, learn
+  activeLab: "classical", // classical, modern, network, compression
   activeLearn: 0,
   sidebarOpen: true,
-  theme: "light",         // light | dark
+  theme: "light",         // light, dark
   toast: null,            // { message, type: success|error|info }
   progress: { current: 0, total: 0, label: "" },
 });
@@ -124,7 +124,7 @@ const store = {
   // Cross-slice actions
   resetAll() {
     filesSlice.setState({ selectedFiles: [], fileList: [], isDragging: false, dragCount: 0 });
-    uiSlice.setState({ mode: "lock", activeLab: "classical", activeLearn: 0, toast: null, progress: { current: 0, total: 0, label: "" } });
+    uiSlice.setState({ mode: "home", activeLab: "classical", activeLearn: 0, toast: null, progress: { current: 0, total: 0, label: "" } });
     cryptoSlice.setState({ profile: "balanced", hash: "SHA-256", keyBits: 256, iterations: 600000, compression: "auto", keyfile: "none", threshold: 2, unlockTime: null });
   },
 
@@ -147,3 +147,7 @@ const useCrypto = () => cryptoSlice;
 const useSettings = () => settingsSlice;
 
 window.Store = store;
+window.useUI = useUI;
+window.useFiles = useFiles;
+window.useCrypto = useCrypto;
+window.useSettings = useSettings;
