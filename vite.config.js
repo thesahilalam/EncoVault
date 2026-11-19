@@ -6,22 +6,15 @@ import { copyFileSync, cpSync } from 'node:fs';
 const projectRoot = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig({
+  base: '/EncoVault/',  // GitHub Pages subpath
   root: 'frontend',
-  // The UI intentionally uses classic scripts so the small teaching modules
-  // can share browser globals without a framework or bundler runtime.
-  // Vite leaves those scripts untouched, therefore copy them into dist.
   build: {
     outDir: '../dist',
     emptyOutDir: true,
     minify: 'terser',
     terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-      },
-      format: {
-        comments: false,
-      },
+      compress: { drop_console: true, drop_debugger: true },
+      format: { comments: false },
     },
     rollupOptions: {
       input: {
@@ -42,9 +35,7 @@ export default defineConfig({
     port: 3000,
     open: true,
     host: true,
-    proxy: {
-      '/api': 'http://127.0.0.1:8000',
-    },
+    proxy: { '/api': 'http://127.0.0.1:8000' },
   },
   plugins: [{
     name: 'copy-classic-ui-scripts',
@@ -63,9 +54,4 @@ export default defineConfig({
       });
     },
   }],
-  resolve: {
-    alias: {
-      '@': resolve(projectRoot, 'frontend/js'),
-    },
-  },
 });
